@@ -27,16 +27,16 @@ router.get('/', (req: Request, res: Response) => {
 });
 
 // GET /api/categories/tree - Récupérer l'arbre catégories -> sous-catégories
-router.get('/tree', (req: Request, res: Response) => {
-  db.all('SELECT * FROM categories', [], (err, categories: any[]) => {
-    if (err) {
-      console.error('Erreur lors de la récupération des catégories:', err.message);
-      return res.status(500).json({ error: 'Erreur serveur' });
-    }
+router.get('/tree', async (req: Request, res: Response) => {
+  try {
+    const result = await db.query('SELECT * FROM categories ORDER BY name') as any;
+    const categories = result.rows;
+    
     const byId: Record<number, any> = {};
     categories.forEach((c: any) => {
       byId[c.id] = { ...c, children: [] };
     });
+    
     const roots: any[] = [];
     categories.forEach((c: any) => {
       if (c.parent_id) {
@@ -49,8 +49,12 @@ router.get('/tree', (req: Request, res: Response) => {
         roots.push(byId[c.id]);
       }
     });
+    
     return res.json(roots);
-  });
+  } catch (error) {
+    console.error('Erreur lors de la récupération des catégories:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // GET /api/categories/:id - Récupérer une catégorie par ID

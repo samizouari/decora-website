@@ -65,35 +65,35 @@ const uploadMultiple = multer({
 router.use(authenticateToken, requireAdmin);
 
 // GET /api/admin/dashboard - Statistiques du dashboard
-router.get('/dashboard', (req: Request, res: Response) => {
-  const queries = [
-    'SELECT COUNT(*) as total_products FROM products',
-    'SELECT COUNT(*) as total_categories FROM categories',
-    'SELECT COUNT(*) as total_orders FROM orders',
-    'SELECT COUNT(*) as total_users FROM users WHERE role = "customer"',
-    'SELECT COUNT(*) as pending_orders FROM orders WHERE status = "pending"'
-  ];
+router.get('/dashboard', async (req: Request, res: Response) => {
+  try {
+    const queries = [
+      'SELECT COUNT(*) as total_products FROM products',
+      'SELECT COUNT(*) as total_categories FROM categories',
+      'SELECT COUNT(*) as total_orders FROM orders',
+      'SELECT COUNT(*) as total_users FROM users WHERE role = $1',
+      'SELECT COUNT(*) as pending_orders FROM orders WHERE status = $1'
+    ];
 
-  return Promise.all(queries.map(query => 
-    new Promise((resolve, reject) => {
-      db.get(query, [], (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      });
-    })
-  )).then(results => {
-    const [products, categories, orders, users, pendingOrders] = results as any[];
+    const [productsResult, categoriesResult, ordersResult, usersResult, pendingOrdersResult] = await Promise.all([
+      db.query(queries[0]) as any,
+      db.query(queries[1]) as any,
+      db.query(queries[2]) as any,
+      db.query(queries[3], ['customer']) as any,
+      db.query(queries[4], ['pending']) as any
+    ]);
+
     return res.json({
-      products: products.total_products,
-      categories: categories.total_categories,
-      orders: orders.total_orders,
-      users: users.total_users,
-      pendingOrders: pendingOrders.pending_orders
+      products: productsResult.rows[0].total_products,
+      categories: categoriesResult.rows[0].total_categories,
+      orders: ordersResult.rows[0].total_orders,
+      users: usersResult.rows[0].total_users,
+      pendingOrders: pendingOrdersResult.rows[0].pending_orders
     });
-  }).catch(err => {
-    console.error('Erreur dashboard:', err);
+  } catch (error) {
+    console.error('Erreur dashboard:', error);
     return res.status(500).json({ error: 'Erreur serveur' });
-  });
+  }
 });
 
 // GET /api/admin/products - Récupérer tous les produits (y compris masqués) pour l'admin
