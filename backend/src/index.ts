@@ -26,7 +26,12 @@ const aze = process.env.NODE_ENV === 'development'
 app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
-    const allowedOrigins = [process.env.FRONTEND_URL || 'http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'];
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || 'http://localhost:5173', 
+      'http://localhost:3000', 
+      'http://localhost:3001',
+      'https://decora-front.up.railway.app'
+    ];
     if (process.env.NODE_ENV === 'development' || !origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
