@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS orders (
 
 -- Insertion des données initiales
 INSERT INTO users (username, email, password_hash, role) VALUES 
-('admin', 'admin@decora.tn', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin')
+('admin', 'admin@decora.tn', '$2a$10$R8VPT3dxdURktO3zd9XZ9.u7ylwV97w8cX4Xj6qr8spxXKNH/UUfm', 'admin')
 ON CONFLICT (username) DO NOTHING;
 
 -- Insertion des catégories Decora
