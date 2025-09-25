@@ -844,7 +844,7 @@ const ProductForm: React.FC<{
       });
       
       // Ajouter les images
-      images.forEach((image, index) => {
+      images.forEach((image) => {
         formDataToSend.append('images', image);
       });
 
