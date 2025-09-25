@@ -91,7 +91,7 @@ const Login = () => {
                   value={formData.email}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="admin@decora.com"
+                  placeholder="Entrez votre adresse email"
                 />
               </div>
             </div>
@@ -110,7 +110,7 @@ const Login = () => {
                   value={formData.password}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="admin123"
+                  placeholder="Entrez votre mot de passe"
                 />
               </div>
             </div>
@@ -136,8 +136,7 @@ const Login = () => {
               </div>
             </div>
             <div className="mt-6 text-center text-sm text-gray-600">
-              <p>Email: admin@decora.com</p>
-              <p>Mot de passe: admin123</p>
+              <p>Accès réservé aux administrateurs</p>
             </div>
           </div>
         </div>
