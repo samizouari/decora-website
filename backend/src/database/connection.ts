@@ -9,6 +9,11 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const isProduction = process.env.NODE_ENV === 'production';
 const usePostgreSQL = isProduction || process.env.DATABASE_URL;
 
+console.log('🔍 Database configuration:');
+console.log('- NODE_ENV:', process.env.NODE_ENV);
+console.log('- DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('- Using PostgreSQL:', usePostgreSQL);
+
 // Import conditionnel de sqlite3 (seulement en développement)
 let sqlite3: any = null;
 if (!usePostgreSQL) {
