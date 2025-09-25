@@ -95,7 +95,7 @@ router.post('/login', loginValidation, (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Identifiants invalides' });
     }
 
-    return bcrypt.compare(password, user.password).then(isMatch => {
+    return bcrypt.compare(password, user.password_hash).then(isMatch => {
       if (!isMatch) {
         return res.status(401).json({ error: 'Identifiants invalides' });
       }
