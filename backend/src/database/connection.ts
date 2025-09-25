@@ -108,7 +108,10 @@ CREATE TABLE IF NOT EXISTS orders (
 -- Insertion des données initiales
 INSERT INTO users (username, email, password_hash, role) VALUES 
 ('admin', 'admin@decora.tn', '$2a$10$R8VPT3dxdURktO3zd9XZ9.u7ylwV97w8cX4Xj6qr8spxXKNH/UUfm', 'admin')
-ON CONFLICT (username) DO NOTHING;
+ON CONFLICT (username) DO UPDATE SET 
+  email = EXCLUDED.email,
+  password_hash = EXCLUDED.password_hash,
+  role = EXCLUDED.role;
 
 -- Insertion des catégories Decora
 INSERT INTO categories (name, description) VALUES 
