@@ -4,7 +4,8 @@
   "description": "Site web Decora - Mobilier de bureau et décoration d'intérieur",
   "scripts": {
     "dev": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm run dev\"",
-    "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install"
+    "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "preview": "cd frontend && npm run preview"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
