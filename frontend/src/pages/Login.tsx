@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { API_ENDPOINTS } from '../config/api';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -15,7 +16,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('https://backend-url.up.railway.app/api/auth/login', {
+      const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
