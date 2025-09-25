@@ -94,8 +94,13 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Initialiser la base de données et démarrer le serveur
 async function startServer() {
   try {
-    await initDatabase();
-    console.log('✅ Base de données initialisée');
+    // Seulement initialiser SQLite si PostgreSQL n'est pas utilisé
+    if (!process.env.DATABASE_URL) {
+      await initDatabase();
+      console.log('✅ Base de données SQLite initialisée');
+    } else {
+      console.log('✅ Base de données PostgreSQL initialisée via connection.ts');
+    }
     
     app.listen(PORT, () => {
       console.log(`🚀 Serveur Decora démarré sur le port ${PORT}`);
