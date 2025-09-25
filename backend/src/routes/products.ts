@@ -30,64 +30,57 @@ const productValidation = [
 ];
 
 // GET /api/products - Récupérer tous les produits
-router.get('/', (req: Request, res: Response) => {
-  const { category, search, limit = 20, offset = 0 } = req.query;
-  
-  let query = `
-    SELECT p.*, c.name as category_name 
-    FROM products p 
-    LEFT JOIN categories c ON p.category_id = c.id 
-    WHERE p.is_active = 1
-  `;
-  const params: any[] = [];
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const { category, search, limit = 20, offset = 0 } = req.query;
+    
+    let query = `
+      SELECT p.*, c.name as category_name 
+      FROM products p 
+      LEFT JOIN categories c ON p.category_id = c.id 
+      WHERE p.is_active = true
+    `;
+    const params: any[] = [];
 
-  if (category) {
-    query += ' AND c.name = ?';
-    params.push(category);
-  }
-
-  if (search) {
-    query += ' AND (p.name LIKE ? OR p.description LIKE ?)';
-    params.push(`%${search}%`, `%${search}%`);
-  }
-
-  query += ' ORDER BY p.created_at DESC LIMIT ? OFFSET ?';
-  params.push(parseInt(limit as string), parseInt(offset as string));
-
-  return db.all(query, params, (err, products) => {
-    if (err) {
-      console.error('Erreur lors de la récupération des produits:', err.message);
-      return res.status(500).json({ error: 'Erreur serveur' });
+    if (category) {
+      query += ' AND c.name = $' + (params.length + 1);
+      params.push(category);
     }
+
+    if (search) {
+      query += ' AND (p.name LIKE $' + (params.length + 1) + ' OR p.description LIKE $' + (params.length + 2) + ')';
+      params.push(`%${search}%`, `%${search}%`);
+    }
+
+    query += ' ORDER BY p.created_at DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+    params.push(parseInt(limit as string), parseInt(offset as string));
+
+    const result = await db.query(query, params) as any;
+    const products = result.rows;
     
     // Récupérer les images pour chaque produit
     const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const productsWithImages = (products as Product[]).map(async (product: Product) => {
-      return new Promise((resolve) => {
-        db.all(
-          'SELECT image_url FROM product_images WHERE product_id = ? ORDER BY display_order',
-          [product.id],
-          (err, images: any[]) => {
-            const productImages = images ? images.map(img => 
-              img.image_url.startsWith('http') ? img.image_url : `${baseUrl}${img.image_url}`
-            ) : [];
-            
-            resolve({
-              ...product,
-              image_url: product.image_url && !product.image_url.startsWith('http') 
-                ? `${baseUrl}${product.image_url}` 
-                : product.image_url,
-              images: productImages
-            });
-          }
-        );
-      });
-    });
+    for (const product of products) {
+      const imagesResult = await db.query(
+        'SELECT image_url FROM product_images WHERE product_id = $1 ORDER BY display_order',
+        [product.id]
+      ) as any;
+      
+      const productImages = imagesResult.rows.map((img: any) => 
+        img.image_url.startsWith('http') ? img.image_url : `${baseUrl}${img.image_url}`
+      );
+      
+      product.image_url = product.image_url && !product.image_url.startsWith('http') 
+        ? `${baseUrl}${product.image_url}` 
+        : product.image_url;
+      product.images = productImages;
+    }
 
-    return Promise.all(productsWithImages).then(productsWithFullData => {
-      return res.json(productsWithFullData);
-    });
-  });
+    return res.json(products);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des produits:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // GET /api/products/:id - Récupérer un produit par ID

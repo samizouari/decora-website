@@ -93,6 +93,15 @@ CREATE TABLE IF NOT EXISTS product_images (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Ajouter la colonne display_order si elle n'existe pas
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'product_images' AND column_name = 'display_order') THEN
+        ALTER TABLE product_images ADD COLUMN display_order INTEGER DEFAULT 0;
+    END IF;
+END $$;
+
 -- Table des commandes (demandes de devis)
 CREATE TABLE IF NOT EXISTS orders (
     id SERIAL PRIMARY KEY,
