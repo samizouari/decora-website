@@ -85,7 +85,7 @@ router.post('/', authMiddleware, orderValidation, (req: Request, res: Response) 
 
   // Transaction pour créer la commande et les articles associés
   return db.serialize(() => {
-    db.run('BEGIN TRANSACTION');
+    db.run('BEGIN TRANSACTION', [], () => {});
 
     // 1. Calculer le montant total et vérifier la disponibilité des produits
     const productIds = items.map((item: any) => item.product_id);
@@ -94,7 +94,7 @@ router.post('/', authMiddleware, orderValidation, (req: Request, res: Response) 
     return db.all(`SELECT * FROM products WHERE id IN (${placeholders})`, productIds, (err, products: any[]) => {
       if (err) {
         console.error('Erreur lors de la vérification des produits:', err.message);
-        db.run('ROLLBACK');
+        db.run('ROLLBACK', [], () => {});
         return res.status(500).json({ error: 'Erreur serveur' });
       }
 
@@ -104,7 +104,7 @@ router.post('/', authMiddleware, orderValidation, (req: Request, res: Response) 
       for (const item of items) {
         const product = productMap.get(item.product_id);
         if (!product || product.stock_quantity < item.quantity) {
-          db.run('ROLLBACK');
+          db.run('ROLLBACK', [], () => {});
           return res.status(400).json({ error: `Produit ID ${item.product_id} non disponible en quantité suffisante.` });
         }
         total_amount += product.price * item.quantity;
@@ -114,14 +114,14 @@ router.post('/', authMiddleware, orderValidation, (req: Request, res: Response) 
       return db.run(
         'INSERT INTO orders (user_id, total_amount, shipping_address, billing_address, notes) VALUES (?, ?, ?, ?, ?)',
         [userId, total_amount, shipping_address, billing_address, notes],
-        function(err) {
+        function(err, result) {
           if (err) {
             console.error('Erreur lors de la création de la commande:', err.message);
-            db.run('ROLLBACK');
+            db.run('ROLLBACK', [], () => {});
             return res.status(500).json({ error: 'Erreur serveur' });
           }
 
-          const orderId = this.lastID;
+          const orderId = result.lastID;
 
           // 3. Insérer les articles de la commande et mettre à jour le stock
           const itemStmt = db.prepare('INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price) VALUES (?, ?, ?, ?, ?)');
@@ -131,23 +131,23 @@ router.post('/', authMiddleware, orderValidation, (req: Request, res: Response) 
             const product = productMap.get(item.product_id);
             const unit_price = product.price;
             const total_price = unit_price * item.quantity;
-            itemStmt.run(orderId, item.product_id, item.quantity, unit_price, total_price);
-            stockStmt.run(item.quantity, item.product_id);
+            itemStmt.run([orderId, item.product_id, item.quantity, unit_price, total_price]);
+            stockStmt.run([item.quantity, item.product_id]);
           }
           
           itemStmt.finalize();
           return stockStmt.finalize((err) => {
             if (err) {
               console.error('Erreur lors de la finalisation des statements:', err.message);
-              db.run('ROLLBACK');
+              db.run('ROLLBACK', [], () => {});
               return res.status(500).json({ error: 'Erreur serveur' });
             }
             
             // 4. Valider la transaction
-            return db.run('COMMIT', (err) => {
+            return db.run('COMMIT', [], (err) => {
               if (err) {
                 console.error('Erreur lors du commit de la transaction:', err.message);
-                db.run('ROLLBACK');
+                db.run('ROLLBACK', [], () => {});
                 return res.status(500).json({ error: 'Erreur serveur' });
               }
               

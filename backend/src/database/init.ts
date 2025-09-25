@@ -2,7 +2,7 @@ import db from './connection';
 
 const run = (query: string) => {
   return new Promise<void>((resolve, reject) => {
-    db.run(query, (err) => {
+    db.run(query, [], (err) => {
       if (err) return reject(err);
       resolve();
     });
@@ -94,7 +94,7 @@ export async function initDatabase(): Promise<void> {
 
   // Ensure parent_id column exists on legacy databases
   await new Promise<void>((resolve) => {
-    db.all(`PRAGMA table_info(categories)`, (err, rows: any[]) => {
+    db.all(`PRAGMA table_info(categories)`, [], (err, rows: any[]) => {
       if (err) {
         return resolve();
       }
@@ -102,7 +102,7 @@ export async function initDatabase(): Promise<void> {
       if (hasParentId) {
         return resolve();
       }
-      db.run(`ALTER TABLE categories ADD COLUMN parent_id INTEGER`, () => resolve());
+      db.run(`ALTER TABLE categories ADD COLUMN parent_id INTEGER`, [], () => resolve());
     });
   });
 
@@ -111,7 +111,7 @@ export async function initDatabase(): Promise<void> {
 
 async function insertInitialData(): Promise<void> {
   return new Promise(async (resolve, reject) => {
-    db.get('SELECT COUNT(*) as count FROM categories', async (err, row: any) => {
+    db.get('SELECT COUNT(*) as count FROM categories', [], async (err, row: any) => {
       if (err) return reject(err);
       if (row.count > 0) return resolve();
 
@@ -141,8 +141,8 @@ async function insertInitialData(): Promise<void> {
             if (!row || typeof row.id !== 'number') return rejectSub(new Error('Tables not found'));
             const tablesId = row.id;
             const stmt = db.prepare(`INSERT OR IGNORE INTO categories (name, description, parent_id) VALUES (?, ?, ?)`);
-            stmt.run('Table basse', 'Tables basses modernes et pratiques.', tablesId);
-            stmt.run('Table de réunion', 'Tables de réunion pour vos espaces professionnels.', tablesId);
+            stmt.run(['Table basse', 'Tables basses modernes et pratiques.', tablesId]);
+            stmt.run(['Table de réunion', 'Tables de réunion pour vos espaces professionnels.', tablesId]);
             stmt.finalize((e) => e ? rejectSub(e) : resolveSub());
           });
         });
@@ -156,7 +156,7 @@ async function insertInitialData(): Promise<void> {
 
         const prodStmt = db.prepare('INSERT INTO products (name, description, price, category_id, stock_quantity) VALUES (?, ?, ?, ?, ?)');
         for (const prod of products) {
-          prodStmt.run(prod.name, prod.description, prod.price, prod.category_id, prod.stock_quantity);
+          prodStmt.run([prod.name, prod.description, prod.price, prod.category_id, prod.stock_quantity]);
         }
         prodStmt.finalize();
 
@@ -164,7 +164,7 @@ async function insertInitialData(): Promise<void> {
         const bcrypt = require('bcryptjs');
         bcrypt.hash('admin123', 12).then((hashedPassword: string) => {
           const adminStmt = db.prepare('INSERT INTO users (email, password, first_name, last_name, role) VALUES (?, ?, ?, ?, ?)');
-          adminStmt.run('admin@decora.com', hashedPassword, 'Admin', 'Decora', 'admin');
+          adminStmt.run(['admin@decora.com', hashedPassword, 'Admin', 'Decora', 'admin']);
           adminStmt.finalize((err) => {
             if (err) return reject(err);
             console.log('Utilisateur admin créé: admin@decora.com / admin123');

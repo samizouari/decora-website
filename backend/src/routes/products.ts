@@ -149,7 +149,7 @@ router.post('/', productValidation, (req: Request, res: Response) => {
     `INSERT INTO products (name, description, price, category_id, stock_quantity, image_url) 
      VALUES (?, ?, ?, ?, ?, ?)`,
     [name, description, price, category_id, stock_quantity, image_url],
-    function(err) {
+    function(err, result) {
       if (err) {
         console.error('Erreur lors de la création du produit:', err.message);
         return res.status(500).json({ error: 'Erreur serveur' });
@@ -160,7 +160,7 @@ router.post('/', productValidation, (req: Request, res: Response) => {
          FROM products p 
          LEFT JOIN categories c ON p.category_id = c.id 
          WHERE p.id = ?`,
-        [this.lastID],
+        [result.lastID],
         (err, product) => {
           if (err) {
             console.error('Erreur lors de la récupération du produit créé:', err.message);
@@ -190,13 +190,13 @@ router.put('/:id', productValidation, (req: Request, res: Response) => {
          stock_quantity = ?, image_url = ?, updated_at = CURRENT_TIMESTAMP 
      WHERE id = ?`,
     [name, description, price, category_id, stock_quantity, image_url, id],
-    function(err) {
+    function(err, result) {
       if (err) {
         console.error('Erreur lors de la mise à jour du produit:', err.message);
         return res.status(500).json({ error: 'Erreur serveur' });
       }
 
-      if (this.changes === 0) {
+      if (result.changes === 0) {
         return res.status(404).json({ error: 'Produit non trouvé' });
       }
 
@@ -226,13 +226,13 @@ router.delete('/:id', (req: Request, res: Response) => {
   db.run(
     'UPDATE products SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
     [id],
-    function(err) {
+    function(err, result) {
       if (err) {
         console.error('Erreur lors de la suppression du produit:', err.message);
         return res.status(500).json({ error: 'Erreur serveur' });
       }
 
-      if (this.changes === 0) {
+      if (result.changes === 0) {
         return res.status(404).json({ error: 'Produit non trouvé' });
       }
 

@@ -44,14 +44,14 @@ router.post('/register', registerValidation, (req: Request, res: Response) => {
       return db.run(
         'INSERT INTO users (email, password, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?)',
         [email, hashedPassword, first_name, last_name, phone],
-        function(err) {
+        function(err, result) {
           if (err) {
             console.error('Erreur lors de la création de l\'utilisateur:', err);
             return res.status(500).json({ error: 'Erreur serveur' });
           }
 
           const token = jwt.sign(
-            { userId: this.lastID, email, role: 'customer' },
+            { userId: result.lastID, email, role: 'customer' },
             JWT_SECRET,
             { expiresIn: '24h' }
           );
@@ -60,7 +60,7 @@ router.post('/register', registerValidation, (req: Request, res: Response) => {
             message: 'Utilisateur créé avec succès',
             token,
             user: {
-              id: this.lastID,
+              id: result.lastID,
               email,
               first_name,
               last_name,

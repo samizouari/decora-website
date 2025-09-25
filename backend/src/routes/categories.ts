@@ -15,6 +15,7 @@ const categoryValidation = [
 router.get('/', (req: Request, res: Response) => {
   db.all(
     'SELECT * FROM categories ORDER BY name',
+    [],
     (err, categories) => {
       if (err) {
         console.error('Erreur lors de la récupération des catégories:', err.message);
@@ -27,7 +28,7 @@ router.get('/', (req: Request, res: Response) => {
 
 // GET /api/categories/tree - Récupérer l'arbre catégories -> sous-catégories
 router.get('/tree', (req: Request, res: Response) => {
-  db.all('SELECT * FROM categories', (err, categories: any[]) => {
+  db.all('SELECT * FROM categories', [], (err, categories: any[]) => {
     if (err) {
       console.error('Erreur lors de la récupération des catégories:', err.message);
       return res.status(500).json({ error: 'Erreur serveur' });
@@ -86,7 +87,7 @@ router.post('/', categoryValidation, (req: Request, res: Response) => {
   return db.run(
     'INSERT INTO categories (name, description, image_url, parent_id) VALUES (?, ?, ?, ?)',
     [name, description, image_url, parent_id || null],
-    function(err) {
+    function(err, result) {
       if (err) {
         console.error('Erreur lors de la création de la catégorie:', err.message);
         return res.status(500).json({ error: 'Erreur serveur' });
@@ -94,7 +95,7 @@ router.post('/', categoryValidation, (req: Request, res: Response) => {
 
       return db.get(
         'SELECT * FROM categories WHERE id = ?',
-        [this.lastID],
+        [result.lastID],
         (err, category) => {
           if (err) {
             console.error('Erreur lors de la récupération de la catégorie créée:', err.message);
@@ -123,13 +124,13 @@ router.put('/:id', categoryValidation, (req: Request, res: Response) => {
      SET name = ?, description = ?, image_url = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP 
      WHERE id = ?`,
     [name, description, image_url, parent_id || null, id],
-    function(err) {
+    function(err, result) {
       if (err) {
         console.error('Erreur lors de la mise à jour de la catégorie:', err.message);
         return res.status(500).json({ error: 'Erreur serveur' });
       }
 
-      if (this.changes === 0) {
+      if (result.changes === 0) {
         return res.status(404).json({ error: 'Catégorie non trouvée' });
       }
 
@@ -175,12 +176,12 @@ router.delete('/:id', (req: Request, res: Response) => {
             return res.status(500).json({ error: 'Erreur serveur' });
           }
           // Delete the category itself
-          return db.run('DELETE FROM categories WHERE id = ?', [id], function(catErr) {
+          return db.run('DELETE FROM categories WHERE id = ?', [id], function(catErr, result) {
             if (catErr) {
               console.error('Erreur lors de la suppression de la catégorie:', catErr.message);
               return res.status(500).json({ error: 'Erreur serveur' });
             }
-            if (this.changes === 0) {
+            if (result.changes === 0) {
               return res.status(404).json({ error: 'Catégorie non trouvée' });
             }
             return res.json({ message: 'Catégorie et éléments associés supprimés avec succès' });

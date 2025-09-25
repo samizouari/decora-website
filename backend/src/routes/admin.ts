@@ -76,7 +76,7 @@ router.get('/dashboard', (req: Request, res: Response) => {
 
   return Promise.all(queries.map(query => 
     new Promise((resolve, reject) => {
-      db.get(query, (err, row) => {
+      db.get(query, [], (err, row) => {
         if (err) reject(err);
         else resolve(row);
       });
@@ -172,13 +172,13 @@ router.post('/products', (req: Request, res: Response, next: NextFunction) => {
     `INSERT INTO products (name, description, price, category_id, stock_quantity, dimensions, materials) 
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [name, description, productPrice, productCategoryId, productStockQuantity, dimensions, materials],
-    function(err) {
+    function(err, result) {
       if (err) {
         console.error('Erreur création produit:', err);
         return res.status(500).json({ error: 'Erreur serveur' });
       }
 
-      const productId = this.lastID;
+      const productId = result.lastID;
 
       // Insérer les images si elles existent
       if (files && files.length > 0) {
@@ -186,7 +186,7 @@ router.post('/products', (req: Request, res: Response, next: NextFunction) => {
         
         files.forEach((file, index) => {
           const imageUrl = `/uploads/${file.filename}`;
-          imageStmt.run(productId, imageUrl, index);
+          imageStmt.run([productId, imageUrl, index]);
         });
         
         imageStmt.finalize((err) => {
@@ -238,13 +238,13 @@ router.put('/products/:id', (req: Request, res: Response, next: NextFunction) =>
   query += ' WHERE id = ?';
   params.push(id);
 
-  return db.run(query, params, function(err) {
+  return db.run(query, params, function(err, result) {
     if (err) {
       console.error('Erreur modification produit:', err);
       return res.status(500).json({ error: 'Erreur serveur' });
     }
 
-    if (this.changes === 0) {
+    if (result.changes === 0) {
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
 
@@ -261,7 +261,7 @@ router.put('/products/:id', (req: Request, res: Response, next: NextFunction) =>
         
         files.forEach((file, index) => {
           const imageUrl = `/uploads/${file.filename}`;
-          imageStmt.run(id, imageUrl, index);
+          imageStmt.run([id, imageUrl, index]);
         });
         
         imageStmt.finalize((err) => {
@@ -280,13 +280,13 @@ router.put('/products/:id', (req: Request, res: Response, next: NextFunction) =>
 router.delete('/products/:id', (req: Request, res: Response) => {
   const { id } = req.params;
 
-  return db.run('DELETE FROM products WHERE id = ?', [id], function(err) {
+  return db.run('DELETE FROM products WHERE id = ?', [id], function(err, result) {
     if (err) {
       console.error('Erreur suppression produit:', err);
       return res.status(500).json({ error: 'Erreur serveur' });
     }
 
-    if (this.changes === 0) {
+    if (result.changes === 0) {
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
 
@@ -310,7 +310,7 @@ router.post('/categories', upload.single('image'), [
   return db.run(
     'INSERT INTO categories (name, description, image_url) VALUES (?, ?, ?)',
     [name, description, imageUrl],
-    function(err) {
+    function(err, result) {
       if (err) {
         console.error('Erreur création catégorie:', err);
         return res.status(500).json({ error: 'Erreur serveur' });
@@ -318,7 +318,7 @@ router.post('/categories', upload.single('image'), [
 
       return res.status(201).json({
         message: 'Catégorie créée avec succès',
-        categoryId: this.lastID
+        categoryId: result.lastID
       });
     }
   );
@@ -349,13 +349,13 @@ router.put('/categories/:id', upload.single('image'), [
   query += ' WHERE id = ?';
   params.push(id);
 
-  return db.run(query, params, function(err) {
+  return db.run(query, params, function(err, result) {
     if (err) {
       console.error('Erreur modification catégorie:', err);
       return res.status(500).json({ error: 'Erreur serveur' });
     }
 
-    if (this.changes === 0) {
+    if (result.changes === 0) {
       return res.status(404).json({ error: 'Catégorie non trouvée' });
     }
 
@@ -367,13 +367,13 @@ router.put('/categories/:id', upload.single('image'), [
 router.delete('/categories/:id', (req: Request, res: Response) => {
   const { id } = req.params;
 
-  return db.run('DELETE FROM categories WHERE id = ?', [id], function(err) {
+  return db.run('DELETE FROM categories WHERE id = ?', [id], function(err, result) {
     if (err) {
       console.error('Erreur suppression catégorie:', err);
       return res.status(500).json({ error: 'Erreur serveur' });
     }
 
-    if (this.changes === 0) {
+    if (result.changes === 0) {
       return res.status(404).json({ error: 'Catégorie non trouvée' });
     }
 
@@ -390,7 +390,7 @@ router.get('/orders', (req: Request, res: Response) => {
     ORDER BY o.created_at DESC
   `;
 
-  return db.all(query, (err, orders) => {
+  return db.all(query, [], (err, orders) => {
     if (err) {
       console.error('Erreur récupération commandes:', err);
       return res.status(500).json({ error: 'Erreur serveur' });
@@ -415,13 +415,13 @@ router.put('/orders/:id/status', [
   return db.run(
     'UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
     [status, id],
-    function(err) {
+    function(err, result) {
       if (err) {
         console.error('Erreur modification statut commande:', err);
         return res.status(500).json({ error: 'Erreur serveur' });
       }
 
-      if (this.changes === 0) {
+      if (result.changes === 0) {
         return res.status(404).json({ error: 'Commande non trouvée' });
       }
 
@@ -441,13 +441,13 @@ router.put('/products/:id/visibility', authenticateToken, requireAdmin, (req: Re
 
   const query = 'UPDATE products SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?';
   
-  db.run(query, [is_active ? 1 : 0, id], function(err) {
+  db.run(query, [is_active ? 1 : 0, id], function(err, result) {
     if (err) {
       console.error('Erreur lors de la mise à jour de la visibilité:', err.message);
       return res.status(500).json({ error: 'Erreur serveur' });
     }
 
-    if (this.changes === 0) {
+    if (result.changes === 0) {
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
 

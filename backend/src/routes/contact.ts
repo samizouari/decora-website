@@ -24,7 +24,7 @@ router.post('/', contactValidation, (req: Request, res: Response) => {
   return db.run(
     'INSERT INTO contact_requests (name, email, phone, subject, message) VALUES (?, ?, ?, ?, ?)',
     [name, email, phone, subject, message],
-    function(err) {
+    function(err, result) {
       if (err) {
         console.error('Erreur lors de la création de la demande de contact:', err.message);
         return res.status(500).json({ error: 'Erreur serveur' });
@@ -32,7 +32,7 @@ router.post('/', contactValidation, (req: Request, res: Response) => {
 
       return res.status(201).json({ 
         message: 'Demande de contact envoyée avec succès',
-        id: this.lastID 
+        id: result.lastID 
       });
     }
   );
@@ -42,6 +42,7 @@ router.post('/', contactValidation, (req: Request, res: Response) => {
 router.get('/', (req: Request, res: Response) => {
   return db.all(
     'SELECT * FROM contact_requests ORDER BY created_at DESC',
+    [],
     (err, requests) => {
       if (err) {
         console.error('Erreur lors de la récupération des demandes de contact:', err.message);
@@ -64,13 +65,13 @@ router.put('/:id', (req: Request, res: Response) => {
   return db.run(
     'UPDATE contact_requests SET status = ? WHERE id = ?',
     [status, id],
-    function(err) {
+    function(err, result) {
       if (err) {
         console.error('Erreur lors de la mise à jour du statut:', err.message);
         return res.status(500).json({ error: 'Erreur serveur' });
       }
 
-      if (this.changes === 0) {
+      if (result.changes === 0) {
         return res.status(404).json({ error: 'Demande de contact non trouvée' });
       }
 
