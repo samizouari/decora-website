@@ -32,10 +32,22 @@ const upload = multer({
     const allowedTypes = /jpeg|jpg|png|webp|pdf/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
+    
+    // Validation spéciale pour les PDFs
+    const isPDF = path.extname(file.originalname).toLowerCase() === '.pdf';
+    const isValidPDFMime = file.mimetype === 'application/pdf' || file.mimetype === 'application/x-pdf';
 
-    if (mimetype && extname) {
+    console.log('🔍 [UPLOAD] Fichier:', file.originalname);
+    console.log('🔍 [UPLOAD] MIME type:', file.mimetype);
+    console.log('🔍 [UPLOAD] Extension:', path.extname(file.originalname).toLowerCase());
+    console.log('🔍 [UPLOAD] Is PDF:', isPDF);
+    console.log('🔍 [UPLOAD] Valid PDF MIME:', isValidPDFMime);
+
+    if ((mimetype && extname) || (isPDF && isValidPDFMime)) {
+      console.log('✅ [UPLOAD] Fichier accepté:', file.originalname);
       return cb(null, true);
     } else {
+      console.log('❌ [UPLOAD] Fichier rejeté:', file.originalname);
       cb(new Error('Seuls les fichiers (jpeg, jpg, png, webp, pdf) sont autorisés'));
     }
   }
@@ -52,10 +64,22 @@ const uploadMultiple = multer({
     const allowedTypes = /jpeg|jpg|png|webp|pdf/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
+    
+    // Validation spéciale pour les PDFs
+    const isPDF = path.extname(file.originalname).toLowerCase() === '.pdf';
+    const isValidPDFMime = file.mimetype === 'application/pdf' || file.mimetype === 'application/x-pdf';
 
-    if (mimetype && extname) {
+    console.log('🔍 [UPLOAD] Fichier:', file.originalname);
+    console.log('🔍 [UPLOAD] MIME type:', file.mimetype);
+    console.log('🔍 [UPLOAD] Extension:', path.extname(file.originalname).toLowerCase());
+    console.log('🔍 [UPLOAD] Is PDF:', isPDF);
+    console.log('🔍 [UPLOAD] Valid PDF MIME:', isValidPDFMime);
+
+    if ((mimetype && extname) || (isPDF && isValidPDFMime)) {
+      console.log('✅ [UPLOAD] Fichier accepté:', file.originalname);
       return cb(null, true);
     } else {
+      console.log('❌ [UPLOAD] Fichier rejeté:', file.originalname);
       cb(new Error('Seuls les fichiers (jpeg, jpg, png, webp, pdf) sont autorisés'));
     }
   }
