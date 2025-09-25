@@ -136,7 +136,7 @@ router.post('/', authMiddleware, orderValidation, (req: Request, res: Response) 
           }
           
           itemStmt.finalize();
-          return stockStmt.finalize((err) => {
+          return stockStmt.finalize((err: Error | null) => {
             if (err) {
               console.error('Erreur lors de la finalisation des statements:', err.message);
               db.run('ROLLBACK', [], () => {});

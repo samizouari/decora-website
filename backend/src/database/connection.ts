@@ -1,5 +1,4 @@
 import { Pool } from 'pg';
-import sqlite3 from 'sqlite3';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
@@ -10,8 +9,18 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const isProduction = process.env.NODE_ENV === 'production';
 const usePostgreSQL = isProduction || process.env.DATABASE_URL;
 
+// Import conditionnel de sqlite3 (seulement en développement)
+let sqlite3: any = null;
+if (!usePostgreSQL) {
+  try {
+    sqlite3 = require('sqlite3');
+  } catch (err) {
+    console.warn('SQLite3 not available, falling back to PostgreSQL');
+  }
+}
+
 let pool: Pool | null = null;
-let sqliteDb: sqlite3.Database | null = null;
+let sqliteDb: any = null;
 
 if (usePostgreSQL) {
   // Configuration PostgreSQL pour la production
@@ -90,7 +99,7 @@ export default {
         .then(res => callback(null, { changes: res.rowCount, lastID: res.rows[0]?.id }))
         .catch(err => callback(err, null));
     } else if (sqliteDb) {
-      sqliteDb.run(query, params, function(err) {
+      sqliteDb.run(query, params, function(this: any, err: Error | null) {
         callback(err, { changes: this.changes, lastID: this.lastID });
       });
     } else {

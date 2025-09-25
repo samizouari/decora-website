@@ -189,7 +189,7 @@ router.post('/products', (req: Request, res: Response, next: NextFunction) => {
           imageStmt.run([productId, imageUrl, index]);
         });
         
-        imageStmt.finalize((err) => {
+        imageStmt.finalize((err: Error | null) => {
           if (err) {
             console.error('Erreur insertion images:', err);
           }
@@ -264,7 +264,7 @@ router.put('/products/:id', (req: Request, res: Response, next: NextFunction) =>
           imageStmt.run([id, imageUrl, index]);
         });
         
-        imageStmt.finalize((err) => {
+        imageStmt.finalize((err: Error | null) => {
           if (err) {
             console.error('Erreur insertion nouvelles images:', err);
           }

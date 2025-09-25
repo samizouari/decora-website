@@ -143,7 +143,7 @@ async function insertInitialData(): Promise<void> {
             const stmt = db.prepare(`INSERT OR IGNORE INTO categories (name, description, parent_id) VALUES (?, ?, ?)`);
             stmt.run(['Table basse', 'Tables basses modernes et pratiques.', tablesId]);
             stmt.run(['Table de réunion', 'Tables de réunion pour vos espaces professionnels.', tablesId]);
-            stmt.finalize((e) => e ? rejectSub(e) : resolveSub());
+            stmt.finalize((e: Error | null) => e ? rejectSub(e) : resolveSub());
           });
         });
 
@@ -165,7 +165,7 @@ async function insertInitialData(): Promise<void> {
         bcrypt.hash('admin123', 12).then((hashedPassword: string) => {
           const adminStmt = db.prepare('INSERT INTO users (email, password, first_name, last_name, role) VALUES (?, ?, ?, ?, ?)');
           adminStmt.run(['admin@decora.com', hashedPassword, 'Admin', 'Decora', 'admin']);
-          adminStmt.finalize((err) => {
+          adminStmt.finalize((err: Error | null) => {
             if (err) return reject(err);
             console.log('Utilisateur admin créé: admin@decora.com / admin123');
             console.log('Données initiales insérées.');
