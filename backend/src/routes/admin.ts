@@ -97,49 +97,32 @@ router.get('/dashboard', (req: Request, res: Response) => {
 });
 
 // GET /api/admin/products - Récupérer tous les produits (y compris masqués) pour l'admin
-router.get('/products', authenticateToken, requireAdmin, (req: Request, res: Response) => {
-  const query = `
-    SELECT p.*, c.name as category_name 
-    FROM products p 
-    LEFT JOIN categories c ON p.category_id = c.id 
-    ORDER BY p.created_at DESC
-  `;
+router.get('/products', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const query = `
+      SELECT p.*, c.name as category_name 
+      FROM products p 
+      LEFT JOIN categories c ON p.category_id = c.id 
+      ORDER BY p.created_at DESC
+    `;
 
-  db.all(query, [], (err, products) => {
-    if (err) {
-      console.error('Erreur lors de la récupération des produits:', err.message);
-      return res.status(500).json({ error: 'Erreur serveur' });
-    }
+    const result = await db.query(query) as any;
+    const products = result.rows;
 
     // Pour chaque produit, récupérer ses images
-    const productsWithImages = products.map(async (product: any) => {
-      return new Promise((resolve, reject) => {
-        db.all(
-          'SELECT image_url FROM product_images WHERE product_id = ?',
-          [product.id],
-          (err, rows) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve({
-                ...product,
-                images: (rows as any[]).map(row => row.image_url)
-              });
-            }
-          }
-        );
-      });
-    });
+    for (const product of products) {
+      const imagesResult = await db.query(
+        'SELECT image_url FROM product_images WHERE product_id = $1 ORDER BY created_at',
+        [product.id]
+      ) as any;
+      product.images = imagesResult.rows.map((img: any) => img.image_url);
+    }
 
-    Promise.all(productsWithImages)
-      .then(results => res.json(results))
-      .catch(error => {
-        console.error('Erreur lors de la récupération des images:', error);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      });
-    
-    return; // Ajouter un return explicite
-  });
+    return res.json(products);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des produits:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // POST /api/admin/products - Créer un nouveau produit
@@ -154,7 +137,7 @@ router.post('/products', (req: Request, res: Response, next: NextFunction) => {
   });
 }, [
   body('name').notEmpty().withMessage('Le nom est requis')
-], (req: Request, res: Response) => {
+], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -168,40 +151,35 @@ router.post('/products', (req: Request, res: Response, next: NextFunction) => {
   const productCategoryId = category_id ? parseInt(category_id) : null;
   const productStockQuantity = stock_quantity ? parseInt(stock_quantity) : 0;
 
-  return db.run(
-    `INSERT INTO products (name, description, price, category_id, stock_quantity, dimensions, materials) 
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [name, description, productPrice, productCategoryId, productStockQuantity, dimensions, materials],
-    function(err, result) {
-      if (err) {
-        console.error('Erreur création produit:', err);
-        return res.status(500).json({ error: 'Erreur serveur' });
+  try {
+    const result = await db.query(
+      `INSERT INTO products (name, description, price, category_id, stock_quantity, dimensions, materials) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [name, description, productPrice, productCategoryId, productStockQuantity, dimensions, materials]
+    ) as any;
+    
+    const productId = result.rows[0].id;
+
+    // Insérer les images si elles existent
+    if (files && files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const imageUrl = `/uploads/${file.filename}`;
+        await db.query(
+          'INSERT INTO product_images (product_id, image_url, display_order) VALUES ($1, $2, $3)',
+          [productId, imageUrl, i]
+        );
       }
-
-      const productId = result.lastID;
-
-      // Insérer les images si elles existent
-      if (files && files.length > 0) {
-        const imageStmt = db.prepare('INSERT INTO product_images (product_id, image_url, display_order) VALUES (?, ?, ?)');
-        
-        files.forEach((file, index) => {
-          const imageUrl = `/uploads/${file.filename}`;
-          imageStmt.run([productId, imageUrl, index]);
-        });
-        
-        imageStmt.finalize((err: Error | null) => {
-          if (err) {
-            console.error('Erreur insertion images:', err);
-          }
-        });
-      }
-
-      return res.status(201).json({
-        message: 'Produit créé avec succès',
-        productId: productId
-      });
     }
-  );
+
+    return res.status(201).json({
+      message: 'Produit créé avec succès',
+      productId: productId
+    });
+  } catch (error) {
+    console.error('Erreur création produit:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // PUT /api/admin/products/:id - Modifier un produit
