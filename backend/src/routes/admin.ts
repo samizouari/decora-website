@@ -193,7 +193,7 @@ router.put('/products/:id', (req: Request, res: Response, next: NextFunction) =>
   });
 }, [
   body('name').notEmpty().withMessage('Le nom est requis')
-], (req: Request, res: Response) => {
+], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -208,50 +208,42 @@ router.put('/products/:id', (req: Request, res: Response, next: NextFunction) =>
   const productCategoryId = category_id ? parseInt(category_id) : null;
   const productStockQuantity = stock_quantity ? parseInt(stock_quantity) : 0;
 
-  let query = `UPDATE products SET 
-    name = ?, description = ?, price = ?, category_id = ?, 
-    stock_quantity = ?, dimensions = ?, materials = ?, updated_at = CURRENT_TIMESTAMP`;
-  let params: any[] = [name, description, productPrice, productCategoryId, productStockQuantity, dimensions, materials];
+  try {
+    const query = `UPDATE products SET 
+      name = $1, description = $2, price = $3, category_id = $4, 
+      stock_quantity = $5, dimensions = $6, materials = $7, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $8`;
+    
+    const result = await db.query(query, [
+      name, description, productPrice, productCategoryId, 
+      productStockQuantity, dimensions, materials, id
+    ]) as any;
 
-  query += ' WHERE id = ?';
-  params.push(id);
-
-  return db.run(query, params, function(err, result) {
-    if (err) {
-      console.error('Erreur modification produit:', err);
-      return res.status(500).json({ error: 'Erreur serveur' });
-    }
-
-    if (result.changes === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
 
     // Mettre à jour les images si elles existent
     if (files && files.length > 0) {
       // Supprimer les anciennes images
-      db.run('DELETE FROM product_images WHERE product_id = ?', [id], (err) => {
-        if (err) {
-          console.error('Erreur suppression anciennes images:', err);
-        }
-        
-        // Insérer les nouvelles images
-        const imageStmt = db.prepare('INSERT INTO product_images (product_id, image_url, display_order) VALUES (?, ?, ?)');
-        
-        files.forEach((file, index) => {
-          const imageUrl = `/uploads/${file.filename}`;
-          imageStmt.run([id, imageUrl, index]);
-        });
-        
-        imageStmt.finalize((err: Error | null) => {
-          if (err) {
-            console.error('Erreur insertion nouvelles images:', err);
-          }
-        });
-      });
+      await db.query('DELETE FROM product_images WHERE product_id = $1', [id]);
+      
+      // Insérer les nouvelles images
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const imageUrl = `/uploads/${file.filename}`;
+        await db.query(
+          'INSERT INTO product_images (product_id, image_url, display_order) VALUES ($1, $2, $3)',
+          [id, imageUrl, i]
+        );
+      }
     }
 
     return res.json({ message: 'Produit modifié avec succès' });
-  });
+  } catch (error) {
+    console.error('Erreur modification produit:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // DELETE /api/admin/products/:id - Supprimer un produit
