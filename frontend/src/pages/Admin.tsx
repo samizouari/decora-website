@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '../config/api';
 
 interface DashboardStats {
   products: number;
@@ -33,7 +34,7 @@ const Admin: React.FC = () => {
   const fetchDashboardStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/dashboard', {
+      const response = await fetch(API_ENDPOINTS.ADMIN.DASHBOARD, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -265,7 +266,7 @@ const ProductManagement: React.FC = () => {
   const fetchProducts = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/products', {
+      const response = await fetch(API_ENDPOINTS.ADMIN.PRODUCTS, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -281,7 +282,7 @@ const ProductManagement: React.FC = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/categories/tree');
+      const response = await fetch(API_ENDPOINTS.CATEGORIES_TREE);
       if (response.ok) {
         const data = await response.json();
         // Aplatir la hiérarchie pour l'affichage dans le select
@@ -422,7 +423,7 @@ const CategoryManagement: React.FC = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/categories');
+      const response = await fetch(API_ENDPOINTS.CATEGORIES);
       if (response.ok) {
         const data = await response.json();
         setCategories(data);
