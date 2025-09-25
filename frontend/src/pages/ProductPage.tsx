@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw } from 'lucide-react';
 import ImageGallery from '../components/ImageGallery';
+import { API_ENDPOINTS } from '../config/api';
 
 interface Product {
   id: number;
@@ -35,7 +36,7 @@ const ProductPage = () => {
 
   const fetchProduct = async (productId: number) => {
     try {
-      const response = await fetch(`/api/products/${productId}`);
+      const response = await fetch(`${API_ENDPOINTS.PRODUCTS}/${productId}`);
       if (response.ok) {
         const data = await response.json();
         setProduct(data);

@@ -32,6 +32,7 @@ const productValidation = [
 // GET /api/products - Récupérer tous les produits
 router.get('/', async (req: Request, res: Response) => {
   try {
+    console.log('🔍 [PRODUCTS] Début de la récupération des produits');
     const { category, search, limit = 20, offset = 0 } = req.query;
     
     let query = `
@@ -55,8 +56,13 @@ router.get('/', async (req: Request, res: Response) => {
     query += ' ORDER BY p.created_at DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
     params.push(parseInt(limit as string), parseInt(offset as string));
 
+    console.log('🔍 [PRODUCTS] Requête SQL:', query);
+    console.log('🔍 [PRODUCTS] Paramètres:', params);
+
     const result = await db.query(query, params) as any;
     const products = result.rows;
+    
+    console.log('🔍 [PRODUCTS] Nombre de produits trouvés:', products.length);
     
     // Récupérer les images pour chaque produit
     const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -76,9 +82,10 @@ router.get('/', async (req: Request, res: Response) => {
       product.images = productImages;
     }
 
+    console.log('🔍 [PRODUCTS] Produits avec images:', products.length);
     return res.json(products);
   } catch (error) {
-    console.error('Erreur lors de la récupération des produits:', error);
+    console.error('❌ [PRODUCTS] Erreur lors de la récupération des produits:', error);
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 });

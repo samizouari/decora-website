@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Filter, Grid, List, Eye, ShoppingCart } from 'lucide-react';
 import ImageGallery from '../components/ImageGallery';
+import { API_ENDPOINTS } from '../config/api';
 
 interface Product {
   id: number;
@@ -39,7 +40,7 @@ const Products = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('/api/products');
+      const response = await fetch(API_ENDPOINTS.PRODUCTS);
       const data = await response.json();
       setProducts(data);
     } catch (error) {
@@ -51,7 +52,7 @@ const Products = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/categories');
+      const response = await fetch(API_ENDPOINTS.CATEGORIES);
       const data = await response.json();
       setCategories(data);
     } catch (error) {
