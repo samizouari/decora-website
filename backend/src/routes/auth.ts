@@ -77,7 +77,7 @@ router.post('/register', registerValidation, (req: Request, res: Response) => {
 });
 
 // POST /api/auth/login - Connexion
-router.post('/login', loginValidation, (req: Request, res: Response) => {
+router.post('/login', loginValidation, async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -85,47 +85,44 @@ router.post('/login', loginValidation, (req: Request, res: Response) => {
 
   const { email, password } = req.body;
 
-  return db.get('SELECT * FROM users WHERE email = ?', [email], (err, user: any) => {
-    if (err) {
-      console.error('Erreur lors de la recherche de l\'utilisateur:', err);
-      return res.status(500).json({ error: 'Erreur serveur' });
-    }
+  try {
+    // Utiliser l'API PostgreSQL async/await
+    const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = result.rows[0];
 
     if (!user) {
       return res.status(401).json({ error: 'Identifiants invalides' });
     }
 
-    return bcrypt.compare(password, user.password_hash).then(isMatch => {
-      if (!isMatch) {
-        return res.status(401).json({ error: 'Identifiants invalides' });
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Identifiants invalides' });
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    return res.json({
+      message: 'Connexion réussie',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role
       }
-
-      const token = jwt.sign(
-        { userId: user.id, email: user.email, role: user.role },
-        JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-
-      return res.json({
-        message: 'Connexion réussie',
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          role: user.role
-        }
-      });
-    }).catch(error => {
-      console.error('Erreur lors de la comparaison des mots de passe:', error);
-      return res.status(500).json({ error: 'Erreur serveur' });
     });
-  });
+  } catch (error) {
+    console.error('Erreur lors de la connexion:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // GET /api/auth/me - Récupérer les informations de l'utilisateur connecté
-router.get('/me', (req: Request, res: Response) => {
+router.get('/me', async (req: Request, res: Response) => {
   const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {
@@ -135,22 +132,17 @@ router.get('/me', (req: Request, res: Response) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     
-    return db.get(
-      'SELECT id, email, first_name, last_name, phone, role FROM users WHERE id = ?',
-      [decoded.userId],
-      (err: any, user: any) => {
-        if (err) {
-          console.error('Erreur lors de la récupération de l\'utilisateur:', err);
-          return res.status(500).json({ error: 'Erreur serveur' });
-        }
-
-        if (!user) {
-          return res.status(404).json({ error: 'Utilisateur non trouvé' });
-        }
-
-        return res.json(user);
-      }
+    const result = await db.query(
+      'SELECT id, email, username, role FROM users WHERE id = $1',
+      [decoded.userId]
     );
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+
+    return res.json(user);
   } catch (error) {
     return res.status(401).json({ error: 'Token invalide' });
   }
