@@ -19,4 +19,14 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_URL || 'https://backend-url.up.railway.app',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
+  },
 }) 
