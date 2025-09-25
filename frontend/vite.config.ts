@@ -21,6 +21,7 @@ export default defineConfig({
   },
   preview: {
     port: 3000,
+    host: '0.0.0.0', // Expose sur toutes les interfaces
     proxy: {
       '/api': {
         target: process.env.VITE_API_URL || 'https://backend-url.up.railway.app',
