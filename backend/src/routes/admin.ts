@@ -29,14 +29,14 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024 // 5MB max
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp/;
+    const allowedTypes = /jpeg|jpg|png|webp|pdf/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
 
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Seules les images (jpeg, jpg, png, webp) sont autorisées'));
+      cb(new Error('Seuls les fichiers (jpeg, jpg, png, webp, pdf) sont autorisés'));
     }
   }
 });
@@ -49,14 +49,14 @@ const uploadMultiple = multer({
     files: 10 // Maximum 10 images par produit
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp/;
+    const allowedTypes = /jpeg|jpg|png|webp|pdf/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
 
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Seules les images (jpeg, jpg, png, webp) sont autorisées'));
+      cb(new Error('Seuls les fichiers (jpeg, jpg, png, webp, pdf) sont autorisés'));
     }
   }
 });
