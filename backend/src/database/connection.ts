@@ -7,7 +7,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // Détecter l'environnement
 const isProduction = process.env.NODE_ENV === 'production';
-const usePostgreSQL = isProduction || process.env.DATABASE_URL;
+const usePostgreSQL = process.env.DATABASE_URL; // Seulement si DATABASE_URL est définie
 
 console.log('🔍 Database configuration:');
 console.log('- NODE_ENV:', process.env.NODE_ENV);
