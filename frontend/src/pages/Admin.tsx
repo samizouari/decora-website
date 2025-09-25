@@ -438,7 +438,7 @@ const CategoryManagement: React.FC = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/categories/${id}`, {
+      const response = await fetch(`${API_ENDPOINTS.ADMIN.CATEGORIES}/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -548,7 +548,7 @@ const QuoteManagement: React.FC = () => {
   const fetchQuotes = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/quotes', {
+      const response = await fetch(API_ENDPOINTS.ADMIN.QUOTES, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -567,7 +567,7 @@ const QuoteManagement: React.FC = () => {
   const updateQuoteStatus = async (id: number, status: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/admin/quotes/${id}`, {
+      const response = await fetch(`${API_ENDPOINTS.ADMIN.QUOTES}/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -722,8 +722,8 @@ const CategoryForm: React.FC<{
     try {
       const token = localStorage.getItem('token');
       const url = category 
-        ? `/api/admin/categories/${category.id}`
-        : '/api/admin/categories';
+        ? `${API_ENDPOINTS.ADMIN.CATEGORIES}/${category.id}`
+        : API_ENDPOINTS.ADMIN.CATEGORIES;
       
       const response = await fetch(url, {
         method: category ? 'PUT' : 'POST',
@@ -851,8 +851,8 @@ const ProductForm: React.FC<{
 
       const token = localStorage.getItem('token');
       const url = product 
-        ? `/api/admin/products/${product.id}`
-        : '/api/admin/products';
+        ? `${API_ENDPOINTS.ADMIN.PRODUCTS}/${product.id}`
+        : API_ENDPOINTS.ADMIN.PRODUCTS;
       
       const response = await fetch(url, {
         method: product ? 'PUT' : 'POST',
@@ -1009,7 +1009,7 @@ const handleDeleteProduct = async (productId: number) => {
 
   try {
     const token = localStorage.getItem('token');
-    const response = await fetch(`/api/admin/products/${productId}`, {
+    const response = await fetch(`${API_ENDPOINTS.ADMIN.PRODUCTS}/${productId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -1031,7 +1031,7 @@ const handleDeleteProduct = async (productId: number) => {
 const toggleProductVisibility = async (productId: number, isActive: boolean) => {
   try {
     const token = localStorage.getItem('token');
-    const response = await fetch(`/api/admin/products/${productId}/visibility`, {
+    const response = await fetch(`${API_ENDPOINTS.ADMIN.PRODUCTS}/${productId}/visibility`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
