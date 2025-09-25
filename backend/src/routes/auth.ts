@@ -87,7 +87,7 @@ router.post('/login', loginValidation, async (req: Request, res: Response) => {
 
   try {
     // Utiliser l'API PostgreSQL async/await
-    const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const result = await db.query('SELECT * FROM users WHERE email = $1', [email]) as any;
     const user = result.rows[0];
 
     if (!user) {
@@ -135,7 +135,7 @@ router.get('/me', async (req: Request, res: Response) => {
     const result = await db.query(
       'SELECT id, email, username, role FROM users WHERE id = $1',
       [decoded.userId]
-    );
+    ) as any;
     const user = result.rows[0];
 
     if (!user) {
