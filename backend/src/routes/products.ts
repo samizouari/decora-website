@@ -91,49 +91,53 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // GET /api/products/:id - Récupérer un produit par ID
-router.get('/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  
-  return db.get(
-    `SELECT p.*, c.name as category_name 
-     FROM products p 
-     LEFT JOIN categories c ON p.category_id = c.id 
-     WHERE p.id = ? AND p.is_active = 1`,
-    [id],
-    (err, product) => {
-      if (err) {
-        console.error('Erreur lors de la récupération du produit:', err.message);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
-      
-      if (!product) {
-        return res.status(404).json({ error: 'Produit non trouvé' });
-      }
-      
-      // Récupérer les images du produit
-      return db.all(
-        'SELECT image_url FROM product_images WHERE product_id = ? ORDER BY display_order',
-        [id],
-        (err, images: any[]) => {
-          const baseUrl = `${req.protocol}://${req.get('host')}`;
-          const typedProduct = product as Product;
-          const productImages = images ? images.map(img => 
-            img.image_url.startsWith('http') ? img.image_url : `${baseUrl}${img.image_url}`
-          ) : [];
-          
-          const productWithFullData = {
-            ...typedProduct,
-            image_url: typedProduct.image_url && !typedProduct.image_url.startsWith('http') 
-              ? `${baseUrl}${typedProduct.image_url}` 
-              : typedProduct.image_url,
-            images: productImages
-          };
-          
-          return res.json(productWithFullData);
-        }
-      );
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    console.log('🔍 [PRODUCT] Récupération du produit ID:', id);
+    
+    const result = await db.query(
+      `SELECT p.*, c.name as category_name 
+       FROM products p 
+       LEFT JOIN categories c ON p.category_id = c.id 
+       WHERE p.id = $1 AND p.is_active = true`,
+      [id]
+    ) as any;
+    
+    const product = result.rows[0];
+    
+    if (!product) {
+      console.log('❌ [PRODUCT] Produit non trouvé ID:', id);
+      return res.status(404).json({ error: 'Produit non trouvé' });
     }
-  );
+    
+    console.log('🔍 [PRODUCT] Produit trouvé:', product.name);
+    
+    // Récupérer les images du produit
+    const imagesResult = await db.query(
+      'SELECT image_url FROM product_images WHERE product_id = $1 ORDER BY display_order',
+      [id]
+    ) as any;
+    
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const productImages = imagesResult.rows.map((img: any) => 
+      img.image_url.startsWith('http') ? img.image_url : `${baseUrl}${img.image_url}`
+    );
+    
+    const productWithFullData = {
+      ...product,
+      image_url: product.image_url && !product.image_url.startsWith('http') 
+        ? `${baseUrl}${product.image_url}` 
+        : product.image_url,
+      images: productImages
+    };
+    
+    console.log('🔍 [PRODUCT] Produit avec images:', productImages.length);
+    return res.json(productWithFullData);
+  } catch (error) {
+    console.error('❌ [PRODUCT] Erreur lors de la récupération du produit:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // POST /api/products - Créer un nouveau produit
