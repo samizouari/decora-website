@@ -16,4 +16,23 @@ export const API_ENDPOINTS = {
   CATEGORIES_TREE: `${API_BASE_URL}/api/categories/tree`,
 };
 
+// Fonction utilitaire pour construire les URLs complètes des images
+export const getImageUrl = (imagePath: string): string => {
+  if (!imagePath) return '';
+  
+  // Si l'URL est déjà complète (commence par http/https), la retourner telle quelle
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  
+  // Sinon, préfixer avec l'URL de base de l'API
+  return `${API_BASE_URL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+};
+
+// Fonction utilitaire pour traiter un tableau d'images
+export const getImageUrls = (images: string[]): string[] => {
+  if (!images || !Array.isArray(images)) return [];
+  return images.map(getImageUrl).filter(url => url !== '');
+};
+
 export default API_BASE_URL;

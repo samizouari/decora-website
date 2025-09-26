@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { getImageUrls } from '../config/api';
 
 interface ImageGalleryProps {
   images: string[];
@@ -10,7 +11,10 @@ interface ImageGalleryProps {
 const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt, className = '' }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  if (!images || images.length === 0) {
+  // Convertir les chemins d'images en URLs complètes
+  const fullImageUrls = getImageUrls(images);
+
+  if (!fullImageUrls || fullImageUrls.length === 0) {
     return (
       <div className={`bg-gray-200 rounded-lg flex items-center justify-center ${className}`}>
         <span className="text-gray-500">Aucune image</span>
@@ -20,17 +24,17 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt, className = ''
 
   const goToPrevious = () => {
     setCurrentImageIndex((prevIndex) => 
-      prevIndex === 0 ? images.length - 1 : prevIndex - 1
+      prevIndex === 0 ? fullImageUrls.length - 1 : prevIndex - 1
     );
   };
 
   const goToNext = () => {
     setCurrentImageIndex((prevIndex) => 
-      prevIndex === images.length - 1 ? 0 : prevIndex + 1
+      prevIndex === fullImageUrls.length - 1 ? 0 : prevIndex + 1
     );
   };
 
-  const currentImage = images[currentImageIndex];
+  const currentImage = fullImageUrls[currentImageIndex];
   const isPDF = currentImage?.toLowerCase().endsWith('.pdf');
 
   return (
@@ -57,11 +61,15 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt, className = ''
             src={currentImage}
             alt={`${alt} - Image ${currentImageIndex + 1}`}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              console.error('Erreur de chargement de l\'image:', currentImage);
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
           />
         )}
         
         {/* Navigation par flèches */}
-        {images.length > 1 && (
+        {fullImageUrls.length > 1 && (
           <>
             <button
               onClick={goToPrevious}
@@ -82,17 +90,17 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt, className = ''
         )}
         
         {/* Indicateur d'images */}
-        {images.length > 1 && (
+        {fullImageUrls.length > 1 && (
           <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
-            {currentImageIndex + 1} / {images.length}
+            {currentImageIndex + 1} / {fullImageUrls.length}
           </div>
         )}
       </div>
       
       {/* Miniatures */}
-      {images.length > 1 && (
+      {fullImageUrls.length > 1 && (
         <div className="flex gap-2 mt-2 overflow-x-auto">
-          {images.map((image, index) => {
+          {fullImageUrls.map((image, index) => {
             const isThumbnailPDF = image?.toLowerCase().endsWith('.pdf');
             return (
               <button
@@ -113,6 +121,10 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt, className = ''
                     src={image}
                     alt={`${alt} - Miniature ${index + 1}`}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Erreur de chargement de la miniature:', image);
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
                   />
                 )}
               </button>
