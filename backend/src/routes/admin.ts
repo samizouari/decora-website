@@ -375,7 +375,7 @@ router.delete('/categories/:id', async (req: Request, res: Response) => {
 });
 
 // GET /api/admin/orders - Liste des commandes
-router.get('/orders', (req: Request, res: Response) => {
+router.get('/orders', async (req: Request, res: Response) => {
   const query = `
     SELECT o.*, u.first_name, u.last_name, u.email
     FROM orders o
@@ -383,20 +383,19 @@ router.get('/orders', (req: Request, res: Response) => {
     ORDER BY o.created_at DESC
   `;
 
-  return db.all(query, [], (err, orders) => {
-    if (err) {
-      console.error('Erreur récupération commandes:', err);
-      return res.status(500).json({ error: 'Erreur serveur' });
-    }
-
-    return res.json(orders);
-  });
+  try {
+    const result = await db.query(query) as any;
+    return res.json(result.rows);
+  } catch (error) {
+    console.error('Erreur récupération commandes:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // PUT /api/admin/orders/:id/status - Modifier le statut d'une commande
 router.put('/orders/:id/status', [
   body('status').isIn(['pending', 'processing', 'shipped', 'delivered', 'cancelled']).withMessage('Statut invalide')
-], (req: Request, res: Response) => {
+], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -405,22 +404,21 @@ router.put('/orders/:id/status', [
   const { id } = req.params;
   const { status } = req.body;
 
-  return db.run(
-    'UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [status, id],
-    function(err, result) {
-      if (err) {
-        console.error('Erreur modification statut commande:', err);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
+  try {
+    const result = await db.query(
+      'UPDATE orders SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [status, id]
+    ) as any;
 
-      if (result.changes === 0) {
-        return res.status(404).json({ error: 'Commande non trouvée' });
-      }
-
-      return res.json({ message: 'Statut de la commande modifié avec succès' });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Commande non trouvée' });
     }
-  );
+
+    return res.json({ message: 'Statut de la commande modifié avec succès' });
+  } catch (error) {
+    console.error('Erreur modification statut commande:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // PUT /api/admin/products/:id/visibility - Modifier la visibilité d'un produit

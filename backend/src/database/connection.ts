@@ -53,6 +53,9 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    phone VARCHAR(20),
     role VARCHAR(20) DEFAULT 'user',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -64,6 +67,7 @@ CREATE TABLE IF NOT EXISTS categories (
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
     parent_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+    image_url VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -93,17 +97,53 @@ CREATE TABLE IF NOT EXISTS product_images (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Ajouter la colonne display_order si elle n'existe pas
+-- Ajouter les colonnes manquantes si elles n'existent pas
 DO $$ 
 BEGIN
+    -- Ajouter display_order à product_images
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                    WHERE table_name = 'product_images' AND column_name = 'display_order') THEN
         ALTER TABLE product_images ADD COLUMN display_order INTEGER DEFAULT 0;
+    END IF;
+    
+    -- Ajouter image_url à categories
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'categories' AND column_name = 'image_url') THEN
+        ALTER TABLE categories ADD COLUMN image_url VARCHAR(500);
+    END IF;
+    
+    -- Ajouter les colonnes manquantes à users
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'users' AND column_name = 'first_name') THEN
+        ALTER TABLE users ADD COLUMN first_name VARCHAR(100);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'users' AND column_name = 'last_name') THEN
+        ALTER TABLE users ADD COLUMN last_name VARCHAR(100);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'users' AND column_name = 'phone') THEN
+        ALTER TABLE users ADD COLUMN phone VARCHAR(20);
     END IF;
 END $$;
 
 -- Table des commandes (demandes de devis)
 CREATE TABLE IF NOT EXISTS orders (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    subject VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    status VARCHAR(20) DEFAULT 'new',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table des demandes de contact
+CREATE TABLE IF NOT EXISTS contact_requests (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL,

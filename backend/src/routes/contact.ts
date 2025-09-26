@@ -13,7 +13,7 @@ const contactValidation = [
 ];
 
 // POST /api/contact - Créer une nouvelle demande de contact
-router.post('/', contactValidation, (req: Request, res: Response) => {
+router.post('/', contactValidation, async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -21,40 +21,35 @@ router.post('/', contactValidation, (req: Request, res: Response) => {
 
   const { name, email, phone, subject, message } = req.body;
 
-  return db.run(
-    'INSERT INTO contact_requests (name, email, phone, subject, message) VALUES (?, ?, ?, ?, ?)',
-    [name, email, phone, subject, message],
-    function(err, result) {
-      if (err) {
-        console.error('Erreur lors de la création de la demande de contact:', err.message);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
+  try {
+    const result = await db.query(
+      'INSERT INTO contact_requests (name, email, phone, subject, message) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [name, email, phone, subject, message]
+    ) as any;
 
-      return res.status(201).json({ 
-        message: 'Demande de contact envoyée avec succès',
-        id: result.lastID 
-      });
-    }
-  );
+    return res.status(201).json({ 
+      message: 'Demande de contact envoyée avec succès',
+      id: result.rows[0].id 
+    });
+  } catch (error) {
+    console.error('Erreur lors de la création de la demande de contact:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // GET /api/contact - Récupérer toutes les demandes de contact (admin)
-router.get('/', (req: Request, res: Response) => {
-  return db.all(
-    'SELECT * FROM contact_requests ORDER BY created_at DESC',
-    [],
-    (err, requests) => {
-      if (err) {
-        console.error('Erreur lors de la récupération des demandes de contact:', err.message);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
-      return res.json(requests);
-    }
-  );
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const result = await db.query('SELECT * FROM contact_requests ORDER BY created_at DESC') as any;
+    return res.json(result.rows);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des demandes de contact:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // PUT /api/contact/:id - Mettre à jour le statut d'une demande
-router.put('/:id', (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   const { status } = req.body;
 
@@ -62,22 +57,21 @@ router.put('/:id', (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Statut invalide' });
   }
 
-  return db.run(
-    'UPDATE contact_requests SET status = ? WHERE id = ?',
-    [status, id],
-    function(err, result) {
-      if (err) {
-        console.error('Erreur lors de la mise à jour du statut:', err.message);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
+  try {
+    const result = await db.query(
+      'UPDATE contact_requests SET status = $1 WHERE id = $2',
+      [status, id]
+    ) as any;
 
-      if (result.changes === 0) {
-        return res.status(404).json({ error: 'Demande de contact non trouvée' });
-      }
-
-      return res.json({ message: 'Statut mis à jour avec succès' });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Demande de contact non trouvée' });
     }
-  );
+
+    return res.json({ message: 'Statut mis à jour avec succès' });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du statut:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 export default router; 
