@@ -271,21 +271,21 @@ router.put('/products/:id', (req: Request, res: Response, next: NextFunction) =>
 });
 
 // DELETE /api/admin/products/:id - Supprimer un produit
-router.delete('/products/:id', (req: Request, res: Response) => {
+router.delete('/products/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  return db.run('DELETE FROM products WHERE id = ?', [id], function(err, result) {
-    if (err) {
-      console.error('Erreur suppression produit:', err);
-      return res.status(500).json({ error: 'Erreur serveur' });
-    }
+  try {
+    const result = await db.query('DELETE FROM products WHERE id = $1', [id]);
 
-    if (result.changes === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
 
     return res.json({ message: 'Produit supprimé avec succès' });
-  });
+  } catch (err) {
+    console.error('Erreur suppression produit:', err);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // POST /api/admin/categories - Créer une nouvelle catégorie
@@ -425,7 +425,7 @@ router.put('/orders/:id/status', [
 });
 
 // PUT /api/admin/products/:id/visibility - Modifier la visibilité d'un produit
-router.put('/products/:id/visibility', authenticateToken, requireAdmin, (req: Request, res: Response) => {
+router.put('/products/:id/visibility', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { is_active } = req.body;
 
@@ -433,15 +433,13 @@ router.put('/products/:id/visibility', authenticateToken, requireAdmin, (req: Re
     return res.status(400).json({ error: 'Le paramètre is_active doit être un booléen' });
   }
 
-  const query = 'UPDATE products SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?';
-  
-  db.run(query, [is_active ? 1 : 0, id], function(err, result) {
-    if (err) {
-      console.error('Erreur lors de la mise à jour de la visibilité:', err.message);
-      return res.status(500).json({ error: 'Erreur serveur' });
-    }
+  try {
+    const result = await db.query(
+      'UPDATE products SET is_active = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [is_active, id]
+    );
 
-    if (result.changes === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
 
@@ -449,9 +447,10 @@ router.put('/products/:id/visibility', authenticateToken, requireAdmin, (req: Re
       message: `Produit ${is_active ? 'activé' : 'désactivé'} avec succès`,
       is_active: is_active
     });
-  });
-  
-  return; // Ajouter un return explicite
+  } catch (err) {
+    console.error('Erreur lors de la mise à jour de la visibilité:', err);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 export default router; 
