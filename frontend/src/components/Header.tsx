@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
-import { ShoppingCart, User, Menu, X } from 'lucide-react'
+import { ShoppingCart, User, Menu, X, LogOut, Settings } from 'lucide-react'
 import { useState } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 const Header = () => {
   const [isNavigationOpen, setIsNavigationOpen] = useState(false)
+  const { isAuthenticated, isAdmin, user, logout } = useAuth()
 
   const navigationItems = [
     { path: '/', label: 'Accueil' },
@@ -32,9 +34,31 @@ const Header = () => {
               <Link to="/cart" className="p-2 text-accent-600 hover:text-primary-500 transition-colors">
                 <ShoppingCart size={20} />
               </Link>
-              <Link to="/login" className="p-2 text-accent-600 hover:text-primary-500 transition-colors">
-                <User size={20} />
-              </Link>
+              
+              {/* User actions */}
+              {isAuthenticated ? (
+                <div className="flex items-center space-x-2">
+                  {isAdmin && (
+                    <Link to="/admin" className="p-2 text-accent-600 hover:text-primary-500 transition-colors" title="Administration">
+                      <Settings size={20} />
+                    </Link>
+                  )}
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <span>Bonjour, {user?.username}</span>
+                    <button 
+                      onClick={logout}
+                      className="p-2 text-accent-600 hover:text-primary-500 transition-colors"
+                      title="Se déconnecter"
+                    >
+                      <LogOut size={20} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <Link to="/login" className="p-2 text-accent-600 hover:text-primary-500 transition-colors">
+                  <User size={20} />
+                </Link>
+              )}
               
               {/* Menu hamburger */}
               <button

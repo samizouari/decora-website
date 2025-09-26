@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface DashboardStats {
   products: number;
@@ -15,13 +16,11 @@ const Admin: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { isAuthenticated, isAdmin, token } = useAuth();
 
   useEffect(() => {
     // Vérifier si l'utilisateur est admin
-    const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    
-    if (!token || user.role !== 'admin') {
+    if (!isAuthenticated || !isAdmin) {
       navigate('/login');
       return;
     }
@@ -29,11 +28,10 @@ const Admin: React.FC = () => {
     if (activeTab === 'dashboard') {
       fetchDashboardStats();
     }
-  }, [activeTab, navigate]);
+  }, [activeTab, navigate, isAuthenticated, isAdmin]);
 
   const fetchDashboardStats = async () => {
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(API_ENDPOINTS.ADMIN.DASHBOARD, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -52,8 +50,7 @@ const Admin: React.FC = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    // Le logout est maintenant géré par le contexte
     navigate('/login');
   };
 
