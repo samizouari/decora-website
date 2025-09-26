@@ -12,18 +12,14 @@ const categoryValidation = [
 ];
 
 // GET /api/categories - Récupérer toutes les catégories (à plat)
-router.get('/', (req: Request, res: Response) => {
-  db.all(
-    'SELECT * FROM categories ORDER BY name',
-    [],
-    (err, categories) => {
-      if (err) {
-        console.error('Erreur lors de la récupération des catégories:', err.message);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
-      return res.json(categories);
-    }
-  );
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const result = await db.query('SELECT * FROM categories ORDER BY name') as any;
+    return res.json(result.rows);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des catégories:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // GET /api/categories/tree - Récupérer l'arbre catégories -> sous-catégories
@@ -58,29 +54,26 @@ router.get('/tree', async (req: Request, res: Response) => {
 });
 
 // GET /api/categories/:id - Récupérer une catégorie par ID
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   
-  db.get(
-    'SELECT * FROM categories WHERE id = ?',
-    [id],
-    (err, category) => {
-      if (err) {
-        console.error('Erreur lors de la récupération de la catégorie:', err.message);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
-      
-      if (!category) {
-        return res.status(404).json({ error: 'Catégorie non trouvée' });
-      }
-      
-      return res.json(category);
+  try {
+    const result = await db.query('SELECT * FROM categories WHERE id = $1', [id]) as any;
+    const category = result.rows[0];
+    
+    if (!category) {
+      return res.status(404).json({ error: 'Catégorie non trouvée' });
     }
-  );
+    
+    return res.json(category);
+  } catch (error) {
+    console.error('Erreur lors de la récupération de la catégorie:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // POST /api/categories - Créer une nouvelle catégorie
-router.post('/', categoryValidation, (req: Request, res: Response) => {
+router.post('/', categoryValidation, async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -88,33 +81,28 @@ router.post('/', categoryValidation, (req: Request, res: Response) => {
 
   const { name, description, image_url, parent_id } = req.body;
 
-  return db.run(
-    'INSERT INTO categories (name, description, image_url, parent_id) VALUES (?, ?, ?, ?)',
-    [name, description, image_url, parent_id || null],
-    function(err, result) {
-      if (err) {
-        console.error('Erreur lors de la création de la catégorie:', err.message);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
+  try {
+    const result = await db.query(
+      'INSERT INTO categories (name, description, image_url, parent_id) VALUES ($1, $2, $3, $4) RETURNING id',
+      [name, description, image_url, parent_id || null]
+    ) as any;
 
-      return db.get(
-        'SELECT * FROM categories WHERE id = ?',
-        [result.lastID],
-        (err, category) => {
-          if (err) {
-            console.error('Erreur lors de la récupération de la catégorie créée:', err.message);
-            return res.status(500).json({ error: 'Erreur serveur' });
-          }
-          
-          return res.status(201).json(category);
-        }
-      );
-    }
-  );
+    const categoryId = result.rows[0].id;
+
+    const categoryResult = await db.query(
+      'SELECT * FROM categories WHERE id = $1',
+      [categoryId]
+    ) as any;
+
+    return res.status(201).json(categoryResult.rows[0]);
+  } catch (error) {
+    console.error('Erreur lors de la création de la catégorie:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // PUT /api/categories/:id - Mettre à jour une catégorie
-router.put('/:id', categoryValidation, (req: Request, res: Response) => {
+router.put('/:id', categoryValidation, async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -123,77 +111,68 @@ router.put('/:id', categoryValidation, (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, description, image_url, parent_id } = req.body;
 
-  return db.run(
-    `UPDATE categories 
-     SET name = ?, description = ?, image_url = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP 
-     WHERE id = ?`,
-    [name, description, image_url, parent_id || null, id],
-    function(err, result) {
-      if (err) {
-        console.error('Erreur lors de la mise à jour de la catégorie:', err.message);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
+  try {
+    const result = await db.query(
+      `UPDATE categories 
+       SET name = $1, description = $2, image_url = $3, parent_id = $4, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $5`,
+      [name, description, image_url, parent_id || null, id]
+    ) as any;
 
-      if (result.changes === 0) {
-        return res.status(404).json({ error: 'Catégorie non trouvée' });
-      }
-
-      return db.get(
-        'SELECT * FROM categories WHERE id = ?',
-        [id],
-        (err, category) => {
-          if (err) {
-            console.error('Erreur lors de la récupération de la catégorie mise à jour:', err.message);
-            return res.status(500).json({ error: 'Erreur serveur' });
-          }
-          
-          return res.json(category);
-        }
-      );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Catégorie non trouvée' });
     }
-  );
+
+    const categoryResult = await db.query(
+      'SELECT * FROM categories WHERE id = $1',
+      [id]
+    ) as any;
+
+    return res.json(categoryResult.rows[0]);
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la catégorie:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // DELETE /api/categories/:id - Supprimer une catégorie
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
-  // Cascade: delete products in this category and its subcategories, then delete subcategories, then category
-  return db.serialize(() => {
+  
+  try {
     // Get all category ids to delete (id + its direct children)
-    return db.all('SELECT id FROM categories WHERE id = ? OR parent_id = ?', [id, id], (err, rows: any[]) => {
-      if (err) {
-        console.error('Erreur lors de la récupération des sous-catégories:', err.message);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
-      const ids = rows.map(r => r.id);
-      const placeholders = ids.map(() => '?').join(',');
-      // Delete products referencing these categories
-      return db.run(`DELETE FROM products WHERE category_id IN (${placeholders})`, ids, function(prodErr) {
-        if (prodErr) {
-          console.error('Erreur lors de la suppression des produits:', prodErr.message);
-          return res.status(500).json({ error: 'Erreur serveur' });
-        }
-        // Delete the subcategories first
-        return db.run(`DELETE FROM categories WHERE parent_id = ?`, [id], function(subErr) {
-          if (subErr) {
-            console.error('Erreur lors de la suppression des sous-catégories:', subErr.message);
-            return res.status(500).json({ error: 'Erreur serveur' });
-          }
-          // Delete the category itself
-          return db.run('DELETE FROM categories WHERE id = ?', [id], function(catErr, result) {
-            if (catErr) {
-              console.error('Erreur lors de la suppression de la catégorie:', catErr.message);
-              return res.status(500).json({ error: 'Erreur serveur' });
-            }
-            if (result.changes === 0) {
-              return res.status(404).json({ error: 'Catégorie non trouvée' });
-            }
-            return res.json({ message: 'Catégorie et éléments associés supprimés avec succès' });
-          });
-        });
-      });
-    });
-  });
+    const categoriesResult = await db.query(
+      'SELECT id FROM categories WHERE id = $1 OR parent_id = $1', 
+      [id]
+    ) as any;
+    
+    const ids = categoriesResult.rows.map((r: any) => r.id);
+    
+    if (ids.length === 0) {
+      return res.status(404).json({ error: 'Catégorie non trouvée' });
+    }
+    
+    // Create placeholders for PostgreSQL ($1, $2, etc.)
+    const placeholders = ids.map((_: any, index: number) => `$${index + 1}`).join(',');
+    
+    // Delete products referencing these categories
+    await db.query(`DELETE FROM products WHERE category_id IN (${placeholders})`, ids);
+    
+    // Delete the subcategories first
+    await db.query('DELETE FROM categories WHERE parent_id = $1', [id]);
+    
+    // Delete the category itself
+    const result = await db.query('DELETE FROM categories WHERE id = $1', [id]) as any;
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Catégorie non trouvée' });
+    }
+    
+    return res.json({ message: 'Catégorie et éléments associés supprimés avec succès' });
+  } catch (error) {
+    console.error('Erreur lors de la suppression de la catégorie:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 export default router; 
