@@ -275,7 +275,7 @@ router.delete('/products/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
-    const result = await db.query('DELETE FROM products WHERE id = $1', [id]);
+    const result = await db.query('DELETE FROM products WHERE id = $1', [id]) as any;
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Produit non trouvé' });
@@ -437,7 +437,7 @@ router.put('/products/:id/visibility', authenticateToken, requireAdmin, async (r
     const result = await db.query(
       'UPDATE products SET is_active = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
       [is_active, id]
-    );
+    ) as any;
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Produit non trouvé' });
