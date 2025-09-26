@@ -137,6 +137,11 @@ CREATE TABLE IF NOT EXISTS orders (
     phone VARCHAR(20),
     subject VARCHAR(200) NOT NULL,
     message TEXT NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    total_amount DECIMAL(10,2),
+    shipping_address TEXT,
+    billing_address TEXT,
+    notes TEXT,
     status VARCHAR(20) DEFAULT 'new',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -153,6 +158,17 @@ CREATE TABLE IF NOT EXISTS contact_requests (
     status VARCHAR(20) DEFAULT 'new',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table des articles de commande
+CREATE TABLE IF NOT EXISTS order_items (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+    product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+    quantity INTEGER NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Insertion des données initiales

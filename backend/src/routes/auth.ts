@@ -22,7 +22,7 @@ const loginValidation = [
 ];
 
 // POST /api/auth/register - Inscription
-router.post('/register', registerValidation, (req: Request, res: Response) => {
+router.post('/register', registerValidation, async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -30,50 +30,46 @@ router.post('/register', registerValidation, (req: Request, res: Response) => {
 
   const { email, password, first_name, last_name, phone } = req.body;
 
-  return db.get('SELECT id FROM users WHERE email = ?', [email], (err, user) => {
-    if (err) {
-      console.error('Erreur lors de la vérification de l\'utilisateur:', err);
-      return res.status(500).json({ error: 'Erreur serveur' });
-    }
-
-    if (user) {
+  try {
+    // Vérifier si l'utilisateur existe déjà
+    const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]) as any;
+    
+    if (existingUser.rows.length > 0) {
       return res.status(400).json({ error: 'Un utilisateur avec cet email existe déjà' });
     }
 
-    return bcrypt.hash(password, 12).then(hashedPassword => {
-      return db.run(
-        'INSERT INTO users (email, password, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?)',
-        [email, hashedPassword, first_name, last_name, phone],
-        function(err, result) {
-          if (err) {
-            console.error('Erreur lors de la création de l\'utilisateur:', err);
-            return res.status(500).json({ error: 'Erreur serveur' });
-          }
+    // Hasher le mot de passe
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-          const token = jwt.sign(
-            { userId: result.lastID, email, role: 'customer' },
-            JWT_SECRET,
-            { expiresIn: '24h' }
-          );
+    // Créer l'utilisateur
+    const result = await db.query(
+      'INSERT INTO users (email, password_hash, first_name, last_name, phone, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+      [email, hashedPassword, first_name, last_name, phone, 'customer']
+    ) as any;
 
-          return res.status(201).json({
-            message: 'Utilisateur créé avec succès',
-            token,
-            user: {
-              id: result.lastID,
-              email,
-              first_name,
-              last_name,
-              role: 'customer'
-            }
-          });
-        }
-      );
-    }).catch(error => {
-      console.error('Erreur lors du hashage du mot de passe:', error);
-      return res.status(500).json({ error: 'Erreur serveur' });
+    const userId = result.rows[0].id;
+
+    const token = jwt.sign(
+      { userId, email, role: 'customer' },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    return res.status(201).json({
+      message: 'Utilisateur créé avec succès',
+      token,
+      user: {
+        id: userId,
+        email,
+        first_name,
+        last_name,
+        role: 'customer'
+      }
     });
-  });
+  } catch (error) {
+    console.error('Erreur lors de la création de l\'utilisateur:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // POST /api/auth/login - Connexion

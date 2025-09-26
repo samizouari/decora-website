@@ -141,7 +141,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/products - Créer un nouveau produit
-router.post('/', productValidation, (req: Request, res: Response) => {
+router.post('/', productValidation, async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -149,37 +149,32 @@ router.post('/', productValidation, (req: Request, res: Response) => {
 
   const { name, description, price, category_id, stock_quantity, image_url } = req.body;
 
-  return db.run(
-    `INSERT INTO products (name, description, price, category_id, stock_quantity, image_url) 
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [name, description, price, category_id, stock_quantity, image_url],
-    function(err, result) {
-      if (err) {
-        console.error('Erreur lors de la création du produit:', err.message);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
+  try {
+    const result = await db.query(
+      `INSERT INTO products (name, description, price, category_id, stock_quantity, image_url) 
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [name, description, price, category_id, stock_quantity, image_url]
+    ) as any;
 
-      return db.get(
-        `SELECT p.*, c.name as category_name 
-         FROM products p 
-         LEFT JOIN categories c ON p.category_id = c.id 
-         WHERE p.id = ?`,
-        [result.lastID],
-        (err, product) => {
-          if (err) {
-            console.error('Erreur lors de la récupération du produit créé:', err.message);
-            return res.status(500).json({ error: 'Erreur serveur' });
-          }
-          
-          return res.status(201).json(product);
-        }
-      );
-    }
-  );
+    const productId = result.rows[0].id;
+
+    const productResult = await db.query(
+      `SELECT p.*, c.name as category_name 
+       FROM products p 
+       LEFT JOIN categories c ON p.category_id = c.id 
+       WHERE p.id = $1`,
+      [productId]
+    ) as any;
+
+    return res.status(201).json(productResult.rows[0]);
+  } catch (error) {
+    console.error('Erreur lors de la création du produit:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // PUT /api/products/:id - Mettre à jour un produit
-router.put('/:id', productValidation, (req: Request, res: Response) => {
+router.put('/:id', productValidation, async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -188,85 +183,76 @@ router.put('/:id', productValidation, (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, description, price, category_id, stock_quantity, image_url } = req.body;
 
-  return db.run(
-    `UPDATE products 
-     SET name = ?, description = ?, price = ?, category_id = ?, 
-         stock_quantity = ?, image_url = ?, updated_at = CURRENT_TIMESTAMP 
-     WHERE id = ?`,
-    [name, description, price, category_id, stock_quantity, image_url, id],
-    function(err, result) {
-      if (err) {
-        console.error('Erreur lors de la mise à jour du produit:', err.message);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
+  try {
+    const result = await db.query(
+      `UPDATE products 
+       SET name = $1, description = $2, price = $3, category_id = $4, 
+           stock_quantity = $5, image_url = $6, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $7`,
+      [name, description, price, category_id, stock_quantity, image_url, id]
+    ) as any;
 
-      if (result.changes === 0) {
-        return res.status(404).json({ error: 'Produit non trouvé' });
-      }
-
-      return db.get(
-        `SELECT p.*, c.name as category_name 
-         FROM products p 
-         LEFT JOIN categories c ON p.category_id = c.id 
-         WHERE p.id = ?`,
-        [id],
-        (err, product) => {
-          if (err) {
-            console.error('Erreur lors de la récupération du produit mis à jour:', err.message);
-            return res.status(500).json({ error: 'Erreur serveur' });
-          }
-          
-          return res.json(product);
-        }
-      );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Produit non trouvé' });
     }
-  );
+
+    const productResult = await db.query(
+      `SELECT p.*, c.name as category_name 
+       FROM products p 
+       LEFT JOIN categories c ON p.category_id = c.id 
+       WHERE p.id = $1`,
+      [id]
+    ) as any;
+
+    return res.json(productResult.rows[0]);
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du produit:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // DELETE /api/products/:id - Supprimer un produit (soft delete)
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  db.run(
-    'UPDATE products SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [id],
-    function(err, result) {
-      if (err) {
-        console.error('Erreur lors de la suppression du produit:', err.message);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
+  try {
+    const result = await db.query(
+      'UPDATE products SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+      [id]
+    ) as any;
 
-      if (result.changes === 0) {
-        return res.status(404).json({ error: 'Produit non trouvé' });
-      }
-
-      return res.json({ message: 'Produit supprimé avec succès' });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Produit non trouvé' });
     }
-  );
+
+    return res.json({ message: 'Produit supprimé avec succès' });
+  } catch (error) {
+    console.error('Erreur lors de la suppression du produit:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // GET /api/products/category/:categoryId - Récupérer les produits par catégorie
-router.get('/category/:categoryId', (req: Request, res: Response) => {
+router.get('/category/:categoryId', async (req: Request, res: Response) => {
   const { categoryId } = req.params;
   const { limit = 20, offset = 0 } = req.query;
 
-  db.all(
-    `SELECT p.*, c.name as category_name 
-     FROM products p 
-     LEFT JOIN categories c ON p.category_id = c.id 
-     WHERE p.category_id = ? AND p.is_active = 1 
-     ORDER BY p.created_at DESC 
-     LIMIT ? OFFSET ?`,
-    [categoryId, parseInt(limit as string), parseInt(offset as string)],
-    (err, products) => {
-      if (err) {
-        console.error('Erreur lors de la récupération des produits par catégorie:', err.message);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
-      
-      return res.json(products);
-    }
-  );
+  try {
+    const result = await db.query(
+      `SELECT p.*, c.name as category_name 
+       FROM products p 
+       LEFT JOIN categories c ON p.category_id = c.id 
+       WHERE p.category_id = $1 AND p.is_active = true 
+       ORDER BY p.created_at DESC 
+       LIMIT $2 OFFSET $3`,
+      [categoryId, parseInt(limit as string), parseInt(offset as string)]
+    ) as any;
+
+    return res.json(result.rows);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des produits par catégorie:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 export default router; 
