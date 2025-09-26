@@ -292,7 +292,7 @@ router.delete('/products/:id', async (req: Request, res: Response) => {
 router.post('/categories', upload.single('image'), [
   body('name').notEmpty().withMessage('Le nom est requis'),
   body('description').notEmpty().withMessage('La description est requise')
-], (req: Request, res: Response) => {
+], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -301,28 +301,27 @@ router.post('/categories', upload.single('image'), [
   const { name, description } = req.body;
   const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
-  return db.run(
-    'INSERT INTO categories (name, description, image_url) VALUES (?, ?, ?)',
-    [name, description, imageUrl],
-    function(err, result) {
-      if (err) {
-        console.error('Erreur création catégorie:', err);
-        return res.status(500).json({ error: 'Erreur serveur' });
-      }
+  try {
+    const result = await db.query(
+      'INSERT INTO categories (name, description, image_url) VALUES ($1, $2, $3) RETURNING id',
+      [name, description, imageUrl]
+    ) as any;
 
-      return res.status(201).json({
-        message: 'Catégorie créée avec succès',
-        categoryId: result.lastID
-      });
-    }
-  );
+    return res.status(201).json({
+      message: 'Catégorie créée avec succès',
+      categoryId: result.rows[0].id
+    });
+  } catch (error) {
+    console.error('Erreur création catégorie:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // PUT /api/admin/categories/:id - Modifier une catégorie
 router.put('/categories/:id', upload.single('image'), [
   body('name').notEmpty().withMessage('Le nom est requis'),
   body('description').notEmpty().withMessage('La description est requise')
-], (req: Request, res: Response) => {
+], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -332,47 +331,47 @@ router.put('/categories/:id', upload.single('image'), [
   const { name, description } = req.body;
   const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
 
-  let query = 'UPDATE categories SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP';
-  let params: any[] = [name, description];
+  try {
+    let query: string;
+    let params: any[];
 
-  if (imageUrl) {
-    query += ', image_url = ?';
-    params.push(imageUrl);
-  }
-
-  query += ' WHERE id = ?';
-  params.push(id);
-
-  return db.run(query, params, function(err, result) {
-    if (err) {
-      console.error('Erreur modification catégorie:', err);
-      return res.status(500).json({ error: 'Erreur serveur' });
+    if (imageUrl) {
+      query = 'UPDATE categories SET name = $1, description = $2, image_url = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4';
+      params = [name, description, imageUrl, id];
+    } else {
+      query = 'UPDATE categories SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3';
+      params = [name, description, id];
     }
 
-    if (result.changes === 0) {
+    const result = await db.query(query, params) as any;
+
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Catégorie non trouvée' });
     }
 
     return res.json({ message: 'Catégorie modifiée avec succès' });
-  });
+  } catch (error) {
+    console.error('Erreur modification catégorie:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // DELETE /api/admin/categories/:id - Supprimer une catégorie
-router.delete('/categories/:id', (req: Request, res: Response) => {
+router.delete('/categories/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  return db.run('DELETE FROM categories WHERE id = ?', [id], function(err, result) {
-    if (err) {
-      console.error('Erreur suppression catégorie:', err);
-      return res.status(500).json({ error: 'Erreur serveur' });
-    }
+  try {
+    const result = await db.query('DELETE FROM categories WHERE id = $1', [id]) as any;
 
-    if (result.changes === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Catégorie non trouvée' });
     }
 
     return res.json({ message: 'Catégorie supprimée avec succès' });
-  });
+  } catch (error) {
+    console.error('Erreur suppression catégorie:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // GET /api/admin/orders - Liste des commandes
