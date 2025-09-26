@@ -89,7 +89,7 @@ const uploadMultiple = multer({
 router.use(authenticateToken, requireAdmin);
 
 // GET /api/admin/dashboard - Statistiques du dashboard
-router.get('/dashboard', async (req: Request, res: Response) => {
+router.get('/dashboard', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const queries = [
       'SELECT COUNT(*) as total_products FROM products',
@@ -271,7 +271,7 @@ router.put('/products/:id', (req: Request, res: Response, next: NextFunction) =>
 });
 
 // DELETE /api/admin/products/:id - Supprimer un produit
-router.delete('/products/:id', async (req: Request, res: Response) => {
+router.delete('/products/:id', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {

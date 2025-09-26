@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { API_ENDPOINTS } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -248,6 +249,60 @@ const Admin: React.FC = () => {
   );
 };
 
+const handleDeleteProduct = async (productId: number, fetchProducts: () => Promise<void>) => {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_ENDPOINTS.ADMIN.PRODUCTS}/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      // Recharger la liste des produits
+      await fetchProducts();
+      toast.success('Produit supprimé avec succès');
+    } else {
+      const errorData = await response.json();
+      toast.error(errorData.error || 'Erreur lors de la suppression');
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    toast.error('Erreur lors de la suppression');
+  }
+};
+
+const toggleProductVisibility = async (productId: number, isActive: boolean, fetchProducts: () => Promise<void>) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_ENDPOINTS.ADMIN.PRODUCTS}/${productId}/visibility`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ is_active: isActive })
+    });
+
+    if (response.ok) {
+      // Recharger la liste des produits
+      await fetchProducts();
+      toast.success(`Produit ${isActive ? 'activé' : 'désactivé'} avec succès`);
+    } else {
+      const errorData = await response.json();
+      toast.error(errorData.error || 'Erreur lors de la mise à jour de la visibilité');
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    toast.error('Erreur lors de la mise à jour de la visibilité');
+  }
+};
+
 // Composant de gestion des produits
 const ProductManagement: React.FC = () => {
   const [products, setProducts] = useState([]);
@@ -372,7 +427,7 @@ const ProductManagement: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button
-                    onClick={() => toggleProductVisibility(product.id, !product.is_active)}
+                    onClick={() => toggleProductVisibility(product.id, !product.is_active, fetchProducts)}
                     className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       product.is_active 
                         ? 'bg-green-100 text-green-800' 
@@ -393,7 +448,7 @@ const ProductManagement: React.FC = () => {
                     Modifier
                   </button>
                   <button
-                    onClick={() => handleDeleteProduct(product.id)}
+                    onClick={() => handleDeleteProduct(product.id, fetchProducts)}
                     className="text-red-600 hover:text-red-900"
                   >
                     Supprimer
@@ -445,7 +500,7 @@ const CategoryManagement: React.FC = () => {
       if (response.ok) {
         fetchCategories();
       } else {
-        alert('Erreur lors de la suppression');
+        toast.error('Erreur lors de la suppression');
       }
     } catch (error) {
       console.error('Erreur:', error);
@@ -576,7 +631,7 @@ const QuoteManagement: React.FC = () => {
       if (response.ok) {
         fetchQuotes();
       } else {
-        alert('Erreur lors de la mise à jour');
+        toast.error('Erreur lors de la mise à jour');
       }
     } catch (error) {
       console.error('Erreur:', error);
@@ -735,11 +790,11 @@ const CategoryForm: React.FC<{
         onSuccess();
       } else {
         const error = await response.json();
-        alert(error.error || 'Erreur lors de la sauvegarde');
+        toast.error(error.error || 'Erreur lors de la sauvegarde');
       }
     } catch (error) {
       console.error('Erreur:', error);
-      alert('Erreur lors de la sauvegarde');
+      toast.error('Erreur lors de la sauvegarde');
     } finally {
       setLoading(false);
     }
@@ -863,11 +918,11 @@ const ProductForm: React.FC<{
         onSuccess();
       } else {
         const error = await response.json();
-        alert(error.error || 'Erreur lors de la sauvegarde');
+        toast.error(error.error || 'Erreur lors de la sauvegarde');
       }
     } catch (error) {
       console.error('Erreur:', error);
-      alert('Erreur lors de la sauvegarde');
+      toast.error('Erreur lors de la sauvegarde');
     } finally {
       setLoading(false);
     }
@@ -999,54 +1054,5 @@ const ProductForm: React.FC<{
   );
 };
 
-const handleDeleteProduct = async (productId: number) => {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_ENDPOINTS.ADMIN.PRODUCTS}/${productId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (response.ok) {
-      // Recharger la liste des produits
-      window.location.reload();
-    } else {
-      alert('Erreur lors de la suppression');
-    }
-  } catch (error) {
-    console.error('Erreur:', error);
-    alert('Erreur lors de la suppression');
-  }
-};
-
-const toggleProductVisibility = async (productId: number, isActive: boolean) => {
-  try {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_ENDPOINTS.ADMIN.PRODUCTS}/${productId}/visibility`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ is_active: isActive })
-    });
-
-    if (response.ok) {
-      // Recharger la liste des produits
-      window.location.reload();
-    } else {
-      alert('Erreur lors de la mise à jour de la visibilité');
-    }
-  } catch (error) {
-    console.error('Erreur:', error);
-    alert('Erreur lors de la mise à jour de la visibilité');
-  }
-};
 
 export default Admin; 
