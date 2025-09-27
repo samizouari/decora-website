@@ -38,18 +38,28 @@ const ProductPage = () => {
 
   // Fonction pour enregistrer la consultation du produit
   const trackProductView = async (productId: number) => {
-    if (!isAuthenticated || !token) return;
+    if (!isAuthenticated || !token) {
+      console.log('🔍 [TRACK] Utilisateur non authentifié, pas de suivi');
+      return;
+    }
     
     try {
-      await fetch(`${API_ENDPOINTS.PRODUCTS}/${productId}/view`, {
+      console.log('🔍 [TRACK] Enregistrement de la consultation du produit:', productId);
+      const response = await fetch(`${API_ENDPOINTS.PRODUCTS}/${productId}/view`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
+      
+      if (response.ok) {
+        console.log('✅ [TRACK] Consultation enregistrée avec succès');
+      } else {
+        console.error('❌ [TRACK] Erreur lors de l\'enregistrement:', response.status);
+      }
     } catch (error) {
-      console.error('Erreur lors du suivi de la consultation:', error);
+      console.error('❌ [TRACK] Erreur lors du suivi de la consultation:', error);
     }
   };
 

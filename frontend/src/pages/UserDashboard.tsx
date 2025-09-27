@@ -60,6 +60,7 @@ const UserDashboard = () => {
       }
 
       // Récupérer l'historique des produits consultés
+      console.log('🔍 [DASHBOARD] Récupération de l\'historique des produits...');
       const historyResponse = await fetch(`${API_ENDPOINTS.PRODUCTS}/history`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -68,7 +69,10 @@ const UserDashboard = () => {
       
       if (historyResponse.ok) {
         const historyData = await historyResponse.json()
+        console.log('🔍 [DASHBOARD] Historique reçu:', historyData);
         setViewedProducts(historyData)
+      } else {
+        console.error('❌ [DASHBOARD] Erreur lors de la récupération de l\'historique:', historyResponse.status);
       }
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error)

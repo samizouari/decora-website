@@ -98,12 +98,15 @@ router.get('/history', async (req: Request, res: Response) => {
   const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {
+    console.log('❌ [HISTORY] Token manquant');
     return res.status(401).json({ error: 'Token manquant' });
   }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     const userId = decoded.userId;
+
+    console.log('🔍 [HISTORY] Récupération historique pour user:', userId);
 
     const result = await db.query(`
       SELECT 
@@ -124,9 +127,18 @@ router.get('/history', async (req: Request, res: Response) => {
       LIMIT 20
     `, [userId]) as any;
 
+    console.log('🔍 [HISTORY] Nombre de produits trouvés:', result.rows.length);
+    if (result.rows.length > 0) {
+      console.log('🔍 [HISTORY] Premiers produits:', result.rows.slice(0, 3).map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        viewed_at: r.viewed_at
+      })));
+    }
+
     return res.json(result.rows);
   } catch (error) {
-    console.error('Erreur lors de la récupération de l\'historique:', error);
+    console.error('❌ [HISTORY] Erreur lors de la récupération de l\'historique:', error);
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 });
@@ -301,6 +313,7 @@ router.post('/:id/view', async (req: Request, res: Response) => {
   const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {
+    console.log('❌ [VIEW] Token manquant');
     return res.status(401).json({ error: 'Token manquant' });
   }
 
@@ -309,9 +322,12 @@ router.post('/:id/view', async (req: Request, res: Response) => {
     const userId = decoded.userId;
     const productId = parseInt(req.params.id);
 
+    console.log('🔍 [VIEW] Enregistrement consultation - User:', userId, 'Product:', productId);
+
     // Vérifier que le produit existe
     const productCheck = await db.query('SELECT id FROM products WHERE id = $1', [productId]) as any;
     if (productCheck.rows.length === 0) {
+      console.log('❌ [VIEW] Produit non trouvé:', productId);
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
 
@@ -323,9 +339,10 @@ router.post('/:id/view', async (req: Request, res: Response) => {
       DO UPDATE SET viewed_at = CURRENT_TIMESTAMP
     `, [userId, productId]);
 
+    console.log('✅ [VIEW] Consultation enregistrée pour user:', userId, 'product:', productId);
     return res.json({ message: 'Consultation enregistrée' });
   } catch (error) {
-    console.error('Erreur lors de l\'enregistrement de la consultation:', error);
+    console.error('❌ [VIEW] Erreur lors de l\'enregistrement de la consultation:', error);
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 });
