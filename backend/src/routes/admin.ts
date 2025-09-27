@@ -1,15 +1,34 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import multer from 'multer';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import path from 'path';
 import fs from 'fs';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
 import db from '../database/connection';
+import cloudinary from '../config/cloudinary';
 
 const router = express.Router();
 
-// Configuration multer pour l'upload d'images
-const storage = multer.diskStorage({
+// Configuration Cloudinary Storage
+const cloudinaryStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: (req, file) => {
+    return {
+      folder: 'decora',
+      resource_type: 'auto',
+      quality: 'auto',
+      fetch_format: 'auto',
+      transformation: [
+        { width: 1200, height: 1200, crop: 'limit' }, // Redimensionner si nécessaire
+        { quality: 'auto' }
+      ]
+    };
+  }
+});
+
+// Configuration multer pour l'upload d'images (fallback local)
+const localStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = path.join(__dirname, '../../uploads');
     if (!fs.existsSync(uploadDir)) {
@@ -24,7 +43,7 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({
-  storage: storage,
+  storage: cloudinaryStorage,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB max
   },
@@ -55,7 +74,7 @@ const upload = multer({
 
 // Upload multiple pour les images de produits
 const uploadMultiple = multer({
-  storage: storage,
+  storage: cloudinaryStorage,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB max per file
     files: 10 // Maximum 10 images par produit
@@ -188,7 +207,7 @@ router.post('/products', (req: Request, res: Response, next: NextFunction) => {
     if (files && files.length > 0) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const imageUrl = `/uploads/${file.filename}`;
+        const imageUrl = file.path;
         await db.query(
           'INSERT INTO product_images (product_id, image_url, display_order) VALUES ($1, $2, $3)',
           [productId, imageUrl, i]
@@ -255,7 +274,7 @@ router.put('/products/:id', (req: Request, res: Response, next: NextFunction) =>
       // Insérer les nouvelles images
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const imageUrl = `/uploads/${file.filename}`;
+        const imageUrl = file.path;
         await db.query(
           'INSERT INTO product_images (product_id, image_url, display_order) VALUES ($1, $2, $3)',
           [id, imageUrl, i]
@@ -299,7 +318,7 @@ router.post('/categories', upload.single('image'), [
   }
 
   const { name, description } = req.body;
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+  const imageUrl = req.file ? req.file.path : null;
 
   try {
     const result = await db.query(
@@ -329,7 +348,7 @@ router.put('/categories/:id', upload.single('image'), [
 
   const { id } = req.params;
   const { name, description } = req.body;
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
+  const imageUrl = req.file ? req.file.path : undefined;
 
   try {
     let query: string;

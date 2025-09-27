@@ -25,7 +25,12 @@ export const getImageUrl = (imagePath: string): string => {
     return imagePath;
   }
   
-  // Sinon, préfixer avec l'URL de base de l'API
+  // Si c'est une URL Cloudinary, la retourner telle quelle
+  if (imagePath.includes('cloudinary.com')) {
+    return imagePath;
+  }
+  
+  // Sinon, préfixer avec l'URL de base de l'API (pour les anciennes images locales)
   return `${API_BASE_URL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
 };
 
