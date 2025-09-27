@@ -13,6 +13,7 @@ import contactRoutes from './routes/contact';
 import authRoutes from './routes/auth';
 import ordersRoutes from './routes/orders';
 import adminRoutes from './routes/admin';
+import quotesRoutes from './routes/quotes';
 
 // Database
 import { initDatabase } from './database/init';
@@ -64,7 +65,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/quotes', adminRoutes); // Les devis utilisent les mêmes routes que l'admin
+app.use('/api/quotes', quotesRoutes); // Route publique pour les demandes de devis
 
 // Route de santé
 app.get('/api/health', (req, res) => {
