@@ -446,11 +446,10 @@ router.get('/quotes', authenticateToken, requireAdmin, async (req: Request, res:
   
   const query = `
     SELECT o.*, 
-           COALESCE(u.first_name, o.name) as name,
-           COALESCE(u.last_name, '') as last_name,
-           COALESCE(u.email, o.email) as email
+           o.name as name,
+           '' as last_name,
+           o.email as email
     FROM orders o
-    LEFT JOIN users u ON o.user_id = u.id
     ORDER BY o.created_at DESC
   `;
 

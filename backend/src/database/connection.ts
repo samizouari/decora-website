@@ -127,6 +127,12 @@ BEGIN
                    WHERE table_name = 'users' AND column_name = 'phone') THEN
         ALTER TABLE users ADD COLUMN phone VARCHAR(20);
     END IF;
+    
+    -- Ajouter user_id à orders si elle n'existe pas
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'orders' AND column_name = 'user_id') THEN
+        ALTER TABLE orders ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+    END IF;
 END $$;
 
 -- Table des commandes (demandes de devis)
