@@ -441,7 +441,7 @@ router.put('/orders/:id/status', [
 });
 
 // GET /api/admin/quotes - Liste des demandes de devis (alias pour orders)
-router.get('/quotes', async (req: Request, res: Response) => {
+router.get('/quotes', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   console.log('🔍 [ADMIN QUOTES] Requête reçue');
   
   const query = `
@@ -480,7 +480,7 @@ router.get('/quotes', async (req: Request, res: Response) => {
 });
 
 // PUT /api/admin/quotes/:id - Modifier le statut d'un devis
-router.put('/quotes/:id', [
+router.put('/quotes/:id', authenticateToken, requireAdmin, [
   body('status').isIn(['new', 'processing', 'completed', 'cancelled']).withMessage('Statut invalide')
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
