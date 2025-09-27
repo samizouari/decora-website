@@ -6,11 +6,18 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 // Configuration Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'duzmzztqt',
-  api_key: process.env.CLOUDINARY_API_KEY || '116148231676582',
-  api_secret: process.env.CLOUDINARY_API_SECRET || 'V5ri6YFWwbtFIrt5m5bAggJqHyE',
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
   secure: true
 });
+
+// Vérifier que les variables d'environnement sont configurées
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+  console.error('❌ Variables d\'environnement Cloudinary manquantes !');
+  console.error('Veuillez configurer : CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET');
+  process.exit(1);
+}
 
 // Configuration base de données
 const pool = new Pool({
@@ -88,7 +95,14 @@ async function migrateImages() {
     
     for (const productImage of productImagesResult.rows) {
       if (productImage.image_url && productImage.image_url.startsWith('/uploads/')) {
-        const localPath = path.join(__dirname, '..', productImage.image_url);
+        let localPath = path.join(__dirname, '..', productImage.image_url);
+        
+        // Essayer d'abord le chemin exact
+        if (!fs.existsSync(localPath)) {
+          // Si le fichier n'existe pas, essayer de corriger les erreurs de nom
+          const correctedPath = productImage.image_url.replace('imaages-', 'images-');
+          localPath = path.join(__dirname, '..', correctedPath);
+        }
         
         if (fs.existsSync(localPath)) {
           try {

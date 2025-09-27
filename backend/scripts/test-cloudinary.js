@@ -1,12 +1,20 @@
 const cloudinary = require('cloudinary').v2;
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 
 // Configuration Cloudinary
 cloudinary.config({
-  cloud_name: 'duzmzztqt',
-  api_key: '116148231676582',
-  api_secret: 'V5ri6YFWwbtFIrt5m5bAggJqHyE',
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
   secure: true
 });
+
+// Vérifier que les variables d'environnement sont configurées
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+  console.error('❌ Variables d\'environnement Cloudinary manquantes !');
+  console.error('Veuillez configurer : CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET');
+  process.exit(1);
+}
 
 async function testCloudinary() {
   console.log('🧪 Test de connexion Cloudinary...');
