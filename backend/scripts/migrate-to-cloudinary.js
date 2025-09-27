@@ -2,7 +2,7 @@ const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
-require('dotenv').config();
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 // Configuration Cloudinary
 cloudinary.config({
@@ -15,11 +15,13 @@ cloudinary.config({
 // Configuration base de données
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: { rejectUnauthorized: false }, // Toujours utiliser SSL pour Railway
 });
 
 async function migrateImages() {
   console.log('🚀 Début de la migration vers Cloudinary...');
+  console.log('🔍 DATABASE_URL:', process.env.DATABASE_URL ? 'Configuré' : 'Non configuré');
+  console.log('🔍 CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME || 'Non configuré');
   
   try {
     // 1. Migrer les images de catégories
