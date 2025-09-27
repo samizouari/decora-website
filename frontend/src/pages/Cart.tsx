@@ -44,14 +44,14 @@ const Cart = () => {
     localStorage.removeItem('cart');
   };
 
-  const sendQuoteRequest = () => {
+  const sendQuoteRequest = async () => {
     if (cartItems.length === 0) {
       alert('Votre panier est vide');
       return;
     }
 
     const subject = `Demande de devis - ${cartItems.length} produit${cartItems.length > 1 ? 's' : ''}`;
-    const body = `Bonjour,
+    const message = `Bonjour,
 
 Je souhaiterais recevoir un devis pour les produits suivants :
 
@@ -68,8 +68,30 @@ Pouvez-vous me faire parvenir un devis détaillé pour ces produits ?
 Cordialement,
 [Votre nom]`;
 
-    const mailtoLink = `mailto:decora.bur@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoLink);
+    try {
+      const response = await fetch('https://backend-url.up.railway.app/api/quotes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: '[Votre nom]',
+          email: '[votre@email.com]',
+          phone: '',
+          subject: subject,
+          message: message
+        })
+      });
+
+      if (response.ok) {
+        alert('Votre demande de devis a été envoyée avec succès !');
+      } else {
+        alert('Erreur lors de l\'envoi de la demande');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi:', error);
+      alert('Erreur lors de l\'envoi de la demande');
+    }
   };
 
   if (loading) {

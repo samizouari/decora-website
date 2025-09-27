@@ -64,6 +64,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/quotes', adminRoutes); // Les devis utilisent les mêmes routes que l'admin
 
 // Route de santé
 app.get('/api/health', (req, res) => {

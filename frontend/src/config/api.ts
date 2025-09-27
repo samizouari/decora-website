@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   PRODUCTS: `${API_BASE_URL}/api/products`,
   CATEGORIES: `${API_BASE_URL}/api/categories`,
   CATEGORIES_TREE: `${API_BASE_URL}/api/categories/tree`,
+  QUOTES: `${API_BASE_URL}/api/quotes`,
 };
 
 // Fonction utilitaire pour construire les URLs complètes des images

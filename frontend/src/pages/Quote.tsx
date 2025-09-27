@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Send, Phone, Mail, MapPin } from 'lucide-react'
+import { API_ENDPOINTS } from '../config/api'
+import toast from 'react-hot-toast'
 
 const Quote = () => {
   const [formData, setFormData] = useState({
@@ -11,12 +13,64 @@ const Quote = () => {
     budget: '',
     message: ''
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Logique d'envoi du devis
-    console.log('Demande de devis:', formData)
-    alert('Votre demande de devis a été envoyée avec succès !')
+    setIsSubmitting(true)
+
+    try {
+      const subject = `Demande de devis - ${formData.projectType || 'Projet personnalisé'}`
+      const message = `Bonjour,
+
+Je souhaiterais recevoir un devis pour mon projet d'aménagement de bureau.
+
+Informations du projet :
+- Type de projet : ${formData.projectType || 'Non spécifié'}
+- Budget estimé : ${formData.budget || 'Non spécifié'}
+- Entreprise : ${formData.company || 'Non spécifiée'}
+
+Description détaillée :
+${formData.message}
+
+Cordialement,
+${formData.name}`
+
+      const response = await fetch(API_ENDPOINTS.QUOTES, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          subject: subject,
+          message: message
+        })
+      })
+
+      if (response.ok) {
+        toast.success('Votre demande de devis a été envoyée avec succès !')
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          company: '',
+          projectType: '',
+          budget: '',
+          message: ''
+        })
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.error || 'Erreur lors de l\'envoi de la demande')
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi:', error)
+      toast.error('Erreur lors de l\'envoi de la demande')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -149,10 +203,11 @@ const Quote = () => {
 
               <button
                 type="submit"
-                className="w-full btn-primary flex items-center justify-center"
+                disabled={isSubmitting}
+                className="w-full btn-primary flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send size={20} className="mr-2" />
-                Envoyer la demande
+                {isSubmitting ? 'Envoi en cours...' : 'Envoyer la demande'}
               </button>
             </form>
           </div>
