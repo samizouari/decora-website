@@ -44,7 +44,7 @@ const Cart = () => {
     localStorage.removeItem('cart');
   };
 
-  const sendQuoteRequest = async () => {
+  const sendQuoteRequest = () => {
     if (cartItems.length === 0) {
       alert('Votre panier est vide');
       return;
@@ -68,30 +68,13 @@ Pouvez-vous me faire parvenir un devis détaillé pour ces produits ?
 Cordialement,
 [Votre nom]`;
 
-    try {
-      const response = await fetch('https://backend-url.up.railway.app/api/quotes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: '[Votre nom]',
-          email: '[votre@email.com]',
-          phone: '',
-          subject: subject,
-          message: message
-        })
-      });
-
-      if (response.ok) {
-        alert('Votre demande de devis a été envoyée avec succès !');
-      } else {
-        alert('Erreur lors de l\'envoi de la demande');
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'envoi:', error);
-      alert('Erreur lors de l\'envoi de la demande');
-    }
+    // Rediriger vers la page de devis avec les informations pré-remplies
+    const params = new URLSearchParams({
+      subject: subject,
+      message: message
+    });
+    
+    window.location.href = `/quote?${params.toString()}`;
   };
 
   if (loading) {

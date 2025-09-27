@@ -76,9 +76,9 @@ const ProductPage = () => {
     }
   };
 
-  const handleRequestQuote = async () => {
+  const handleRequestQuote = () => {
     const subject = `Demande de devis - ${product?.name}`;
-    const message = `Bonjour,
+    const body = `Bonjour,
 
 Je suis intéressé(e) par le produit "${product?.name}" et souhaiterais recevoir un devis personnalisé.
 
@@ -93,30 +93,14 @@ Pouvez-vous me faire parvenir un devis détaillé ?
 Cordialement,
 [Votre nom]`;
 
-    try {
-      const response = await fetch('https://backend-url.up.railway.app/api/quotes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: '[Votre nom]',
-          email: '[votre@email.com]',
-          phone: '',
-          subject: subject,
-          message: message
-        })
-      });
-
-      if (response.ok) {
-        alert('Votre demande de devis a été envoyée avec succès !');
-      } else {
-        alert('Erreur lors de l\'envoi de la demande');
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'envoi:', error);
-      alert('Erreur lors de l\'envoi de la demande');
-    }
+    // Rediriger vers la page de devis avec les informations pré-remplies
+    const params = new URLSearchParams({
+      product: product?.name || '',
+      subject: subject,
+      message: body
+    });
+    
+    window.location.href = `/quote?${params.toString()}`;
   };
 
   const handleShare = () => {

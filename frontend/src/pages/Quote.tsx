@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Send, Phone, Mail, MapPin } from 'lucide-react'
 import { API_ENDPOINTS } from '../config/api'
 import toast from 'react-hot-toast'
@@ -14,6 +14,22 @@ const Quote = () => {
     message: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Pré-remplir le formulaire avec les paramètres URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const product = urlParams.get('product');
+    const subject = urlParams.get('subject');
+    const message = urlParams.get('message');
+
+    if (product || subject || message) {
+      setFormData(prev => ({
+        ...prev,
+        projectType: product || prev.projectType,
+        message: message || prev.message
+      }));
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

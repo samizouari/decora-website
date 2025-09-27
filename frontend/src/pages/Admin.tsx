@@ -594,6 +594,7 @@ const QuoteManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🔍 [ADMIN] QuoteManagement component mounted, fetching quotes...');
     fetchQuotes();
   }, []);
 
@@ -664,10 +665,13 @@ const QuoteManagement: React.FC = () => {
     }
   };
 
+  console.log('🔍 [ADMIN] QuoteManagement render - loading:', loading, 'quotes count:', quotes.length);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+        <p className="ml-3 text-gray-600">Chargement des demandes de devis...</p>
       </div>
     );
   }
@@ -683,7 +687,12 @@ const QuoteManagement: React.FC = () => {
 
       {quotes.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500">Aucune demande de devis pour le moment</p>
+          <p className="text-gray-500 text-lg">Aucune demande de devis pour le moment</p>
+          <p className="text-gray-400 text-sm mt-2">Les demandes de devis apparaîtront ici une fois soumises</p>
+          <div className="mt-4 text-xs text-gray-400">
+            <p>Debug: quotes.length = {quotes.length}</p>
+            <p>Debug: loading = {loading.toString()}</p>
+          </div>
         </div>
       ) : (
         <div className="bg-white shadow-sm rounded-lg overflow-hidden">

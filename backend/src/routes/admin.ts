@@ -442,6 +442,8 @@ router.put('/orders/:id/status', [
 
 // GET /api/admin/quotes - Liste des demandes de devis (alias pour orders)
 router.get('/quotes', async (req: Request, res: Response) => {
+  console.log('🔍 [ADMIN QUOTES] Requête reçue');
+  
   const query = `
     SELECT o.*, 
            COALESCE(u.first_name, o.name) as name,
@@ -453,12 +455,26 @@ router.get('/quotes', async (req: Request, res: Response) => {
   `;
 
   try {
+    console.log('🔍 [ADMIN QUOTES] Exécution de la requête SQL...');
     const result = await db.query(query) as any;
     console.log('🔍 [ADMIN QUOTES] Nombre de devis trouvés:', result.rows.length);
-    console.log('🔍 [ADMIN QUOTES] Premiers devis:', result.rows.slice(0, 3));
+    
+    if (result.rows.length > 0) {
+      console.log('🔍 [ADMIN QUOTES] Premiers devis:', result.rows.slice(0, 3).map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        subject: r.subject,
+        status: r.status,
+        created_at: r.created_at
+      })));
+    } else {
+      console.log('🔍 [ADMIN QUOTES] Aucun devis trouvé');
+    }
+    
     return res.json(result.rows);
   } catch (error) {
-    console.error('Erreur récupération devis:', error);
+    console.error('❌ [ADMIN QUOTES] Erreur récupération devis:', error);
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 });
