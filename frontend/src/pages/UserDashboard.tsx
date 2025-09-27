@@ -48,7 +48,7 @@ const UserDashboard = () => {
       setLoading(true)
       
       // Récupérer les demandes de devis de l'utilisateur
-      const quotesResponse = await fetch(`${API_ENDPOINTS.ADMIN.QUOTES}?user_id=${user?.id}`, {
+      const quotesResponse = await fetch(API_ENDPOINTS.QUOTES, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
