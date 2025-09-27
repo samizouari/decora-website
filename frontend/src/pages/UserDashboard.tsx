@@ -3,18 +3,12 @@ import { useAuth } from '../contexts/AuthContext'
 import { API_ENDPOINTS } from '../config/api'
 import { 
   User, 
-  Mail, 
-  Phone, 
-  Building, 
   FileText, 
   Eye, 
-  Heart, 
   Clock, 
   TrendingUp,
   Package,
   Star,
-  Calendar,
-  MapPin,
   Settings
 } from 'lucide-react'
 import toast from 'react-hot-toast'
