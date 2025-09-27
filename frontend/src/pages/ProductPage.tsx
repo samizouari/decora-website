@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Heart, Share2, Truck, Shield, RotateCcw } from 'lucide-react';
 import ImageGallery from '../components/ImageGallery';
 import { API_ENDPOINTS } from '../config/api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Product {
   id: number;
@@ -23,6 +24,7 @@ interface Product {
 const ProductPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAuthenticated, token } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,12 +36,32 @@ const ProductPage = () => {
     }
   }, [id]);
 
+  // Fonction pour enregistrer la consultation du produit
+  const trackProductView = async (productId: number) => {
+    if (!isAuthenticated || !token) return;
+    
+    try {
+      await fetch(`${API_ENDPOINTS.PRODUCTS}/${productId}/view`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    } catch (error) {
+      console.error('Erreur lors du suivi de la consultation:', error);
+    }
+  };
+
   const fetchProduct = async (productId: number) => {
     try {
       const response = await fetch(`${API_ENDPOINTS.PRODUCTS}/${productId}`);
       if (response.ok) {
         const data = await response.json();
         setProduct(data);
+        
+        // Enregistrer la consultation du produit
+        trackProductView(productId);
       } else {
         setError('Produit non trouvé');
       }

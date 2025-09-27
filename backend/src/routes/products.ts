@@ -1,6 +1,9 @@
 import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
+import jwt from 'jsonwebtoken';
 import db from '../database/connection';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key';
 
 const router = express.Router();
 
@@ -251,6 +254,76 @@ router.get('/category/:categoryId', async (req: Request, res: Response) => {
     return res.json(result.rows);
   } catch (error) {
     console.error('Erreur lors de la récupération des produits par catégorie:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// POST /api/products/:id/view - Enregistrer la consultation d'un produit
+router.post('/:id/view', async (req: Request, res: Response) => {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token manquant' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const userId = decoded.userId;
+    const productId = parseInt(req.params.id);
+
+    // Vérifier que le produit existe
+    const productCheck = await db.query('SELECT id FROM products WHERE id = $1', [productId]) as any;
+    if (productCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Produit non trouvé' });
+    }
+
+    // Enregistrer ou mettre à jour la consultation
+    await db.query(`
+      INSERT INTO product_views (user_id, product_id, viewed_at) 
+      VALUES ($1, $2, CURRENT_TIMESTAMP)
+      ON CONFLICT (user_id, product_id) 
+      DO UPDATE SET viewed_at = CURRENT_TIMESTAMP
+    `, [userId, productId]);
+
+    return res.json({ message: 'Consultation enregistrée' });
+  } catch (error) {
+    console.error('Erreur lors de l\'enregistrement de la consultation:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// GET /api/products/history - Récupérer l'historique des produits consultés
+router.get('/history', async (req: Request, res: Response) => {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token manquant' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const userId = decoded.userId;
+
+    const result = await db.query(`
+      SELECT 
+        p.id,
+        p.name,
+        p.description,
+        p.price,
+        p.image_url,
+        pv.viewed_at,
+        c.name as category_name
+      FROM product_views pv
+      JOIN products p ON pv.product_id = p.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE pv.user_id = $1
+      ORDER BY pv.viewed_at DESC
+      LIMIT 50
+    `, [userId]) as any;
+
+    return res.json(result.rows);
+  } catch (error) {
+    console.error('Erreur lors de la récupération de l\'historique:', error);
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 });

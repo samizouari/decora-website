@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Send, Phone, Mail, MapPin } from 'lucide-react'
 import { API_ENDPOINTS } from '../config/api'
+import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 
 const Quote = () => {
+  const { isAuthenticated, user, token } = useAuth()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -15,21 +17,23 @@ const Quote = () => {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Pré-remplir le formulaire avec les paramètres URL
+  // Pré-remplir le formulaire avec les paramètres URL et les données utilisateur
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const product = urlParams.get('product');
-    const subject = urlParams.get('subject');
     const message = urlParams.get('message');
 
-    if (product || subject || message) {
-      setFormData(prev => ({
-        ...prev,
-        projectType: product || prev.projectType,
-        message: message || prev.message
-      }));
-    }
-  }, []);
+    setFormData(prev => ({
+      ...prev,
+      // Pré-remplir avec les données utilisateur si connecté
+      name: isAuthenticated ? `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.username || '' : prev.name,
+      email: isAuthenticated ? user?.email || '' : prev.email,
+      phone: isAuthenticated ? user?.phone || '' : prev.phone,
+      // Pré-remplir avec les paramètres URL
+      projectType: product || prev.projectType,
+      message: message || prev.message
+    }));
+  }, [isAuthenticated, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,11 +56,18 @@ ${formData.message}
 Cordialement,
 ${formData.name}`
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+      
+      // Ajouter le token d'authentification si l'utilisateur est connecté
+      if (isAuthenticated && token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
       const response = await fetch(API_ENDPOINTS.QUOTES, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,

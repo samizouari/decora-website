@@ -1,7 +1,10 @@
 import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
+import jwt from 'jsonwebtoken';
 import db from '../database/connection';
 import { sendQuoteNotification } from '../services/emailService';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key';
 
 const router = express.Router();
 
@@ -19,10 +22,23 @@ router.post('/', [
 
   const { name, email, phone, subject, message } = req.body;
 
+  // Vérifier si l'utilisateur est connecté
+  let userId = null;
+  const token = req.headers.authorization?.split(' ')[1];
+  
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      userId = decoded.userId;
+    } catch (error) {
+      // Token invalide, continuer sans utilisateur
+    }
+  }
+
   try {
     const result = await db.query(
-      'INSERT INTO orders (name, email, phone, subject, message, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at',
-      [name, email, phone, subject, message, 'new']
+      'INSERT INTO orders (name, email, phone, subject, message, status, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_at',
+      [name, email, phone, subject, message, 'new', userId]
     ) as any;
 
     const quoteId = result.rows[0].id;
@@ -51,6 +67,30 @@ router.post('/', [
     });
   } catch (error) {
     console.error('Erreur lors de la création de la demande de devis:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// GET /api/quotes - Récupérer les demandes de devis de l'utilisateur connecté
+router.get('/', async (req: Request, res: Response) => {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token manquant' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const userId = decoded.userId;
+
+    const result = await db.query(
+      'SELECT id, subject, message, status, created_at, updated_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC',
+      [userId]
+    ) as any;
+
+    return res.json(result.rows);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des demandes:', error);
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 });

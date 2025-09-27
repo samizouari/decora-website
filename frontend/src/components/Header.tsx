@@ -43,8 +43,11 @@ const Header = () => {
                       <Settings size={20} />
                     </Link>
                   )}
+                  <Link to="/dashboard" className="p-2 text-accent-600 hover:text-primary-500 transition-colors" title="Mon espace">
+                    <User size={20} />
+                  </Link>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <span>Bonjour, {user?.username}</span>
+                    <span>Bonjour, {user?.first_name || user?.username}</span>
                     <button 
                       onClick={logout}
                       className="p-2 text-accent-600 hover:text-primary-500 transition-colors"
@@ -55,9 +58,11 @@ const Header = () => {
                   </div>
                 </div>
               ) : (
-                <Link to="/login" className="p-2 text-accent-600 hover:text-primary-500 transition-colors">
-                  <User size={20} />
-                </Link>
+                <div className="flex items-center space-x-2">
+                  <Link to="/login" className="p-2 text-accent-600 hover:text-primary-500 transition-colors" title="Se connecter">
+                    <User size={20} />
+                  </Link>
+                </div>
               )}
               
               {/* Menu hamburger */}

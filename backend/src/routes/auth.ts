@@ -9,6 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key';
 
 // Validation pour l'inscription
 const registerValidation = [
+  body('username').isLength({ min: 3 }).withMessage('Le nom d\'utilisateur doit contenir au moins 3 caractères'),
   body('email').isEmail().withMessage('Email invalide'),
   body('password').isLength({ min: 6 }).withMessage('Le mot de passe doit contenir au moins 6 caractères'),
   body('first_name').notEmpty().withMessage('Le prénom est requis'),
@@ -28,14 +29,17 @@ router.post('/register', registerValidation, async (req: Request, res: Response)
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { email, password, first_name, last_name, phone } = req.body;
+  const { username, email, password, first_name, last_name, phone, company } = req.body;
 
   try {
-    // Vérifier si l'utilisateur existe déjà
-    const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]) as any;
+    // Vérifier si l'utilisateur existe déjà (email ou username)
+    const existingUser = await db.query(
+      'SELECT id FROM users WHERE email = $1 OR username = $2', 
+      [email, username]
+    ) as any;
     
     if (existingUser.rows.length > 0) {
-      return res.status(400).json({ error: 'Un utilisateur avec cet email existe déjà' });
+      return res.status(400).json({ error: 'Un utilisateur avec cet email ou nom d\'utilisateur existe déjà' });
     }
 
     // Hasher le mot de passe
@@ -43,14 +47,15 @@ router.post('/register', registerValidation, async (req: Request, res: Response)
 
     // Créer l'utilisateur
     const result = await db.query(
-      'INSERT INTO users (email, password_hash, first_name, last_name, phone, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-      [email, hashedPassword, first_name, last_name, phone, 'customer']
+      'INSERT INTO users (username, email, password_hash, first_name, last_name, phone, role) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_at',
+      [username, email, hashedPassword, first_name, last_name, phone, 'user']
     ) as any;
 
     const userId = result.rows[0].id;
+    const createdAt = result.rows[0].created_at;
 
     const token = jwt.sign(
-      { userId, email, role: 'customer' },
+      { userId, email, role: 'user' },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -60,10 +65,13 @@ router.post('/register', registerValidation, async (req: Request, res: Response)
       token,
       user: {
         id: userId,
+        username,
         email,
         first_name,
         last_name,
-        role: 'customer'
+        phone,
+        role: 'user',
+        created_at: createdAt
       }
     });
   } catch (error) {
@@ -108,7 +116,11 @@ router.post('/login', loginValidation, async (req: Request, res: Response) => {
         id: user.id,
         email: user.email,
         username: user.username,
-        role: user.role
+        first_name: user.first_name,
+        last_name: user.last_name,
+        phone: user.phone,
+        role: user.role,
+        created_at: user.created_at
       }
     });
   } catch (error) {
@@ -129,7 +141,7 @@ router.get('/me', async (req: Request, res: Response) => {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     
     const result = await db.query(
-      'SELECT id, email, username, role FROM users WHERE id = $1',
+      'SELECT id, email, username, first_name, last_name, phone, role, created_at FROM users WHERE id = $1',
       [decoded.userId]
     ) as any;
     const user = result.rows[0];

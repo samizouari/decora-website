@@ -133,6 +133,17 @@ BEGIN
                    WHERE table_name = 'orders' AND column_name = 'user_id') THEN
         ALTER TABLE orders ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
     END IF;
+    
+    -- Créer la table product_views si elle n'existe pas
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables 
+                   WHERE table_name = 'product_views') THEN
+        CREATE TABLE product_views (
+            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+            product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+            viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, product_id)
+        );
+    END IF;
 END $$;
 
 -- Table des commandes (demandes de devis)
