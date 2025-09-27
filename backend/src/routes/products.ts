@@ -93,6 +93,44 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/products/history - Récupérer l'historique des produits consultés
+router.get('/history', async (req: Request, res: Response) => {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token manquant' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const userId = decoded.userId;
+
+    const result = await db.query(`
+      SELECT 
+        p.id,
+        p.name,
+        p.description,
+        p.price,
+        p.image_url,
+        p.dimensions,
+        p.materials,
+        c.name as category_name,
+        pv.viewed_at
+      FROM product_views pv
+      JOIN products p ON pv.product_id = p.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE pv.user_id = $1 AND p.is_active = true
+      ORDER BY pv.viewed_at DESC
+      LIMIT 20
+    `, [userId]) as any;
+
+    return res.json(result.rows);
+  } catch (error) {
+    console.error('Erreur lors de la récupération de l\'historique:', error);
+    return res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 // GET /api/products/:id - Récupérer un produit par ID
 router.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -292,40 +330,5 @@ router.post('/:id/view', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/products/history - Récupérer l'historique des produits consultés
-router.get('/history', async (req: Request, res: Response) => {
-  const token = req.headers.authorization?.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ error: 'Token manquant' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const userId = decoded.userId;
-
-    const result = await db.query(`
-      SELECT 
-        p.id,
-        p.name,
-        p.description,
-        p.price,
-        p.image_url,
-        pv.viewed_at,
-        c.name as category_name
-      FROM product_views pv
-      JOIN products p ON pv.product_id = p.id
-      LEFT JOIN categories c ON p.category_id = c.id
-      WHERE pv.user_id = $1
-      ORDER BY pv.viewed_at DESC
-      LIMIT 50
-    `, [userId]) as any;
-
-    return res.json(result.rows);
-  } catch (error) {
-    console.error('Erreur lors de la récupération de l\'historique:', error);
-    return res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
 
 export default router; 
