@@ -592,6 +592,7 @@ const CategoryManagement: React.FC = () => {
 const QuoteManagement: React.FC = () => {
   const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'new' | 'processing' | 'completed' | 'cancelled'>('all');
 
   useEffect(() => {
     console.log('🔍 [ADMIN] QuoteManagement component mounted, fetching quotes...');
@@ -665,6 +666,18 @@ const QuoteManagement: React.FC = () => {
     }
   };
 
+  // Filtrer les demandes selon le statut sélectionné
+  const filteredQuotes = quotes.filter(quote => {
+    if (filter === 'all') return true;
+    return quote.status === filter;
+  });
+
+  // Compter les demandes par statut
+  const newQuotes = quotes.filter(q => q.status === 'new').length;
+  const processingQuotes = quotes.filter(q => q.status === 'processing').length;
+  const completedQuotes = quotes.filter(q => q.status === 'completed').length;
+  const cancelledQuotes = quotes.filter(q => q.status === 'cancelled').length;
+
   console.log('🔍 [ADMIN] QuoteManagement render - loading:', loading, 'quotes count:', quotes.length);
 
   if (loading) {
@@ -685,6 +698,86 @@ const QuoteManagement: React.FC = () => {
         </div>
       </div>
 
+      {/* Statistiques par statut */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <div className="text-2xl font-bold text-blue-600">{newQuotes}</div>
+          <div className="text-sm text-blue-800">Nouvelles</div>
+        </div>
+        <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+          <div className="text-2xl font-bold text-yellow-600">{processingQuotes}</div>
+          <div className="text-sm text-yellow-800">En cours</div>
+        </div>
+        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+          <div className="text-2xl font-bold text-green-600">{completedQuotes}</div>
+          <div className="text-sm text-green-800">Terminées</div>
+        </div>
+        <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+          <div className="text-2xl font-bold text-red-600">{cancelledQuotes}</div>
+          <div className="text-sm text-red-800">Annulées</div>
+        </div>
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div className="text-2xl font-bold text-gray-600">{quotes.length}</div>
+          <div className="text-sm text-gray-800">Total</div>
+        </div>
+      </div>
+
+      {/* Filtres */}
+      <div className="mb-6">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              filter === 'all'
+                ? 'bg-primary-500 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Toutes ({quotes.length})
+          </button>
+          <button
+            onClick={() => setFilter('new')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              filter === 'new'
+                ? 'bg-blue-500 text-white'
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
+          >
+            Nouvelles ({newQuotes})
+          </button>
+          <button
+            onClick={() => setFilter('processing')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              filter === 'processing'
+                ? 'bg-yellow-500 text-white'
+                : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+            }`}
+          >
+            En cours ({processingQuotes})
+          </button>
+          <button
+            onClick={() => setFilter('completed')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              filter === 'completed'
+                ? 'bg-green-500 text-white'
+                : 'bg-green-100 text-green-700 hover:bg-green-200'
+            }`}
+          >
+            Terminées ({completedQuotes})
+          </button>
+          <button
+            onClick={() => setFilter('cancelled')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              filter === 'cancelled'
+                ? 'bg-red-500 text-white'
+                : 'bg-red-100 text-red-700 hover:bg-red-200'
+            }`}
+          >
+            Annulées ({cancelledQuotes})
+          </button>
+        </div>
+      </div>
+
       {quotes.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">Aucune demande de devis pour le moment</p>
@@ -694,8 +787,19 @@ const QuoteManagement: React.FC = () => {
             <p>Debug: loading = {loading.toString()}</p>
           </div>
         </div>
+      ) : filteredQuotes.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">Aucune demande de devis avec ce filtre</p>
+          <p className="text-gray-400 text-sm mt-2">Essayez de changer le filtre pour voir d'autres demandes</p>
+        </div>
       ) : (
         <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+          <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+            <p className="text-sm text-gray-600">
+              Affichage de {filteredQuotes.length} demande{filteredQuotes.length > 1 ? 's' : ''} 
+              {filter !== 'all' && ` (${getStatusLabel(filter)})`}
+            </p>
+          </div>
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -723,7 +827,7 @@ const QuoteManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {quotes.map((quote: any) => (
+              {filteredQuotes.map((quote: any) => (
                 <tr key={quote.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     #{quote.id}
