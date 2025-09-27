@@ -443,7 +443,10 @@ router.put('/orders/:id/status', [
 // GET /api/admin/quotes - Liste des demandes de devis (alias pour orders)
 router.get('/quotes', async (req: Request, res: Response) => {
   const query = `
-    SELECT o.*, u.first_name, u.last_name, u.email
+    SELECT o.*, 
+           COALESCE(u.first_name, o.name) as name,
+           COALESCE(u.last_name, '') as last_name,
+           COALESCE(u.email, o.email) as email
     FROM orders o
     LEFT JOIN users u ON o.user_id = u.id
     ORDER BY o.created_at DESC
@@ -451,6 +454,8 @@ router.get('/quotes', async (req: Request, res: Response) => {
 
   try {
     const result = await db.query(query) as any;
+    console.log('🔍 [ADMIN QUOTES] Nombre de devis trouvés:', result.rows.length);
+    console.log('🔍 [ADMIN QUOTES] Premiers devis:', result.rows.slice(0, 3));
     return res.json(result.rows);
   } catch (error) {
     console.error('Erreur récupération devis:', error);

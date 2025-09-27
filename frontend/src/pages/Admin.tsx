@@ -600,14 +600,19 @@ const QuoteManagement: React.FC = () => {
   const fetchQuotes = async () => {
     try {
       const token = localStorage.getItem('token');
+      console.log('🔍 [ADMIN] Fetching quotes from:', API_ENDPOINTS.ADMIN.QUOTES);
       const response = await fetch(API_ENDPOINTS.ADMIN.QUOTES, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+      console.log('🔍 [ADMIN] Quotes response status:', response.status);
       if (response.ok) {
         const data = await response.json();
+        console.log('🔍 [ADMIN] Quotes data received:', data);
         setQuotes(data);
+      } else {
+        console.error('🔍 [ADMIN] Quotes response error:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Erreur lors du chargement des demandes de devis:', error);
