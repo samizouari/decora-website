@@ -47,6 +47,14 @@ const UserDashboard = () => {
     try {
       setLoading(true)
       
+      console.log('🔍 [DASHBOARD] Token reçu:', token ? 'Présent' : 'Manquant');
+      console.log('🔍 [DASHBOARD] Token value:', token);
+      
+      if (!token) {
+        console.error('❌ [DASHBOARD] Aucun token disponible');
+        return;
+      }
+      
       // Récupérer les demandes de devis de l'utilisateur
       const quotesResponse = await fetch(API_ENDPOINTS.QUOTES, {
         headers: {

@@ -95,7 +95,17 @@ router.get('/', async (req: Request, res: Response) => {
 
 // GET /api/products/history - Récupérer l'historique des produits consultés
 router.get('/history', async (req: Request, res: Response) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  const authHeader = req.headers.authorization;
+  console.log('🔍 [HISTORY] Authorization header:', authHeader);
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('❌ [HISTORY] Header Authorization manquant ou mal formaté');
+    return res.status(401).json({ error: 'Token manquant' });
+  }
+  
+  const token = authHeader.split(' ')[1];
+  console.log('🔍 [HISTORY] Token extrait:', token ? 'Présent' : 'Manquant');
+  console.log('🔍 [HISTORY] Token length:', token ? token.length : 0);
 
   if (!token) {
     console.log('❌ [HISTORY] Token manquant');
@@ -310,7 +320,16 @@ router.get('/category/:categoryId', async (req: Request, res: Response) => {
 
 // POST /api/products/:id/view - Enregistrer la consultation d'un produit
 router.post('/:id/view', async (req: Request, res: Response) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  const authHeader = req.headers.authorization;
+  console.log('🔍 [VIEW] Authorization header:', authHeader);
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('❌ [VIEW] Header Authorization manquant ou mal formaté');
+    return res.status(401).json({ error: 'Token manquant' });
+  }
+  
+  const token = authHeader.split(' ')[1];
+  console.log('🔍 [VIEW] Token extrait:', token ? 'Présent' : 'Manquant');
 
   if (!token) {
     console.log('❌ [VIEW] Token manquant');
