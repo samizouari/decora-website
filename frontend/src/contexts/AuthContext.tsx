@@ -61,11 +61,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = (newToken: string, newUser: User) => {
+  const login = async (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(newUser));
+    
+    // Synchroniser les consultations locales avec le serveur
+    await syncLocalViews(newToken);
+  };
+
+  // Fonction pour synchroniser les consultations locales avec le serveur
+  const syncLocalViews = async (authToken: string) => {
+    try {
+      const viewedProducts = JSON.parse(localStorage.getItem('viewedProducts') || '[]');
+      
+      if (viewedProducts.length === 0) {
+        console.log('🔍 [SYNC] Aucune consultation locale à synchroniser');
+        return;
+      }
+      
+      console.log('🔍 [SYNC] Synchronisation de', viewedProducts.length, 'consultations locales');
+      
+      // Envoyer chaque consultation au serveur
+      for (const view of viewedProducts) {
+        try {
+          const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/products/${view.productId}/view`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${authToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            console.log('✅ [SYNC] Consultation synchronisée:', view.productId);
+          } else {
+            console.error('❌ [SYNC] Erreur synchronisation:', view.productId, response.status);
+          }
+        } catch (error) {
+          console.error('❌ [SYNC] Erreur lors de la synchronisation:', view.productId, error);
+        }
+      }
+      
+      // Vider le localStorage après synchronisation
+      localStorage.removeItem('viewedProducts');
+      console.log('✅ [SYNC] Synchronisation terminée, localStorage vidé');
+      
+    } catch (error) {
+      console.error('❌ [SYNC] Erreur lors de la synchronisation des consultations:', error);
+    }
   };
 
   const logout = () => {

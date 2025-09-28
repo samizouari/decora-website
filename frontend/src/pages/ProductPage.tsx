@@ -38,31 +38,58 @@ const ProductPage = () => {
 
   // Fonction pour enregistrer la consultation du produit
   const trackProductView = async (productId: number) => {
-    if (!isAuthenticated || !token) {
-      console.log('🔍 [TRACK] Utilisateur non authentifié, pas de suivi');
-      return;
-    }
-    
     try {
       console.log('🔍 [TRACK] Enregistrement de la consultation du produit:', productId);
-      console.log('🔍 [TRACK] Token utilisé:', token);
-      console.log('🔍 [TRACK] URL appelée:', `${API_ENDPOINTS.PRODUCTS}/${productId}/view`);
       
-      const response = await fetch(`${API_ENDPOINTS.PRODUCTS}/${productId}/view`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      if (isAuthenticated && token) {
+        // Utilisateur connecté : enregistrer directement sur le serveur
+        console.log('🔍 [TRACK] Utilisateur connecté, enregistrement sur le serveur');
+        console.log('🔍 [TRACK] Token utilisé:', token);
+        console.log('🔍 [TRACK] URL appelée:', `${API_ENDPOINTS.PRODUCTS}/${productId}/view`);
+        
+        const response = await fetch(`${API_ENDPOINTS.PRODUCTS}/${productId}/view`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('🔍 [TRACK] Réponse reçue:', response.status, response.statusText);
+        
+        if (response.ok) {
+          console.log('✅ [TRACK] Consultation enregistrée avec succès sur le serveur');
+        } else {
+          const errorText = await response.text();
+          console.error('❌ [TRACK] Erreur lors de l\'enregistrement:', response.status, errorText);
         }
-      });
-      
-      console.log('🔍 [TRACK] Réponse reçue:', response.status, response.statusText);
-      
-      if (response.ok) {
-        console.log('✅ [TRACK] Consultation enregistrée avec succès');
       } else {
-        const errorText = await response.text();
-        console.error('❌ [TRACK] Erreur lors de l\'enregistrement:', response.status, errorText);
+        // Utilisateur non connecté : enregistrer dans le localStorage
+        console.log('🔍 [TRACK] Utilisateur non connecté, enregistrement local');
+        const viewedProducts = JSON.parse(localStorage.getItem('viewedProducts') || '[]');
+        
+        // Vérifier si le produit n'est pas déjà dans la liste
+        const existingIndex = viewedProducts.findIndex((p: any) => p.productId === productId);
+        const productData = {
+          productId,
+          viewedAt: new Date().toISOString()
+        };
+        
+        if (existingIndex >= 0) {
+          // Mettre à jour la date de consultation
+          viewedProducts[existingIndex] = productData;
+        } else {
+          // Ajouter le nouveau produit
+          viewedProducts.push(productData);
+        }
+        
+        // Garder seulement les 50 derniers produits consultés
+        const sortedProducts = viewedProducts
+          .sort((a: any, b: any) => new Date(b.viewedAt).getTime() - new Date(a.viewedAt).getTime())
+          .slice(0, 50);
+        
+        localStorage.setItem('viewedProducts', JSON.stringify(sortedProducts));
+        console.log('✅ [TRACK] Consultation enregistrée localement');
       }
     } catch (error) {
       console.error('❌ [TRACK] Erreur lors du suivi de la consultation:', error);

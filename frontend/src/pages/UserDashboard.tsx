@@ -50,37 +50,61 @@ const UserDashboard = () => {
       console.log('🔍 [DASHBOARD] Token reçu:', token ? 'Présent' : 'Manquant');
       console.log('🔍 [DASHBOARD] Token value:', token);
       
-      if (!token) {
-        console.error('❌ [DASHBOARD] Aucun token disponible');
-        return;
-      }
-      
-      // Récupérer les demandes de devis de l'utilisateur
-      const quotesResponse = await fetch(API_ENDPOINTS.QUOTES, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      if (token) {
+        // Utilisateur connecté : récupérer les données du serveur
+        console.log('🔍 [DASHBOARD] Utilisateur connecté, récupération des données du serveur');
+        
+        // Récupérer les demandes de devis de l'utilisateur
+        const quotesResponse = await fetch(API_ENDPOINTS.QUOTES, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        
+        if (quotesResponse.ok) {
+          const quotesData = await quotesResponse.json()
+          setQuotes(quotesData)
         }
-      })
-      
-      if (quotesResponse.ok) {
-        const quotesData = await quotesResponse.json()
-        setQuotes(quotesData)
-      }
 
-      // Récupérer l'historique des produits consultés
-      console.log('🔍 [DASHBOARD] Récupération de l\'historique des produits...');
-      const historyResponse = await fetch(`${API_ENDPOINTS.PRODUCTS}/history`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+        // Récupérer l'historique des produits consultés
+        console.log('🔍 [DASHBOARD] Récupération de l\'historique des produits...');
+        const historyResponse = await fetch(`${API_ENDPOINTS.PRODUCTS}/history`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        
+        if (historyResponse.ok) {
+          const historyData = await historyResponse.json()
+          console.log('🔍 [DASHBOARD] Historique reçu:', historyData);
+          setViewedProducts(historyData)
+        } else {
+          console.error('❌ [DASHBOARD] Erreur lors de la récupération de l\'historique:', historyResponse.status);
         }
-      })
-      
-      if (historyResponse.ok) {
-        const historyData = await historyResponse.json()
-        console.log('🔍 [DASHBOARD] Historique reçu:', historyData);
-        setViewedProducts(historyData)
       } else {
-        console.error('❌ [DASHBOARD] Erreur lors de la récupération de l\'historique:', historyResponse.status);
+        // Utilisateur non connecté : récupérer l'historique local
+        console.log('🔍 [DASHBOARD] Utilisateur non connecté, récupération de l\'historique local');
+        const localViews = JSON.parse(localStorage.getItem('viewedProducts') || '[]');
+        console.log('🔍 [DASHBOARD] Historique local:', localViews);
+        
+        // Récupérer les détails des produits consultés localement
+        const productsWithDetails = [];
+        for (const view of localViews) {
+          try {
+            const response = await fetch(`${API_ENDPOINTS.PRODUCTS}/${view.productId}`);
+            if (response.ok) {
+              const product = await response.json();
+              productsWithDetails.push({
+                ...product,
+                viewed_at: view.viewedAt
+              });
+            }
+          } catch (error) {
+            console.error('❌ [DASHBOARD] Erreur lors de la récupération du produit:', view.productId, error);
+          }
+        }
+        
+        setViewedProducts(productsWithDetails);
       }
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error)
