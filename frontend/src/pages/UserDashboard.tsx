@@ -12,6 +12,7 @@ import {
   Settings
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import ImageGallery from '../components/ImageGallery'
 
 interface Quote {
   id: number
@@ -28,6 +29,11 @@ interface ViewedProduct {
   description: string
   price: number
   image_url: string
+  images?: Array<{
+    id: number
+    image_url: string
+    display_order: number
+  }>
   viewed_at: string
   category_name: string
 }
@@ -447,10 +453,10 @@ const UserDashboard = () => {
                   {viewedProducts.map((product) => (
                     <div key={product.id} className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow">
                       <div className="aspect-w-16 aspect-h-9">
-                        <img
-                          src={product.image_url}
+                        <ImageGallery
+                          images={product.images ? product.images.map(img => img.image_url) : (product.image_url ? [product.image_url] : [])}
                           alt={product.name}
-                          className="w-full h-48 object-cover"
+                          className="w-full h-48"
                         />
                       </div>
                       <div className="p-4">

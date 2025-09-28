@@ -128,11 +128,23 @@ router.get('/history', async (req: Request, res: Response) => {
         p.dimensions,
         p.materials,
         c.name as category_name,
-        pv.viewed_at
+        pv.viewed_at,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', pi.id,
+              'image_url', pi.image_url,
+              'display_order', pi.display_order
+            ) ORDER BY pi.display_order ASC
+          ) FILTER (WHERE pi.id IS NOT NULL),
+          '[]'::json
+        ) as images
       FROM product_views pv
       JOIN products p ON pv.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_images pi ON p.id = pi.product_id
       WHERE pv.user_id = $1 AND p.is_active = true
+      GROUP BY p.id, p.name, p.description, p.price, p.image_url, p.dimensions, p.materials, c.name, pv.viewed_at
       ORDER BY pv.viewed_at DESC
       LIMIT 20
     `, [userId]) as any;
@@ -142,7 +154,9 @@ router.get('/history', async (req: Request, res: Response) => {
       console.log('🔍 [HISTORY] Premiers produits:', result.rows.slice(0, 3).map((r: any) => ({
         id: r.id,
         name: r.name,
-        viewed_at: r.viewed_at
+        viewed_at: r.viewed_at,
+        image_url: r.image_url,
+        images_count: r.images ? r.images.length : 0
       })));
     }
 
