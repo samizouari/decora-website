@@ -45,6 +45,9 @@ const ProductPage = () => {
     
     try {
       console.log('🔍 [TRACK] Enregistrement de la consultation du produit:', productId);
+      console.log('🔍 [TRACK] Token utilisé:', token);
+      console.log('🔍 [TRACK] URL appelée:', `${API_ENDPOINTS.PRODUCTS}/${productId}/view`);
+      
       const response = await fetch(`${API_ENDPOINTS.PRODUCTS}/${productId}/view`, {
         method: 'POST',
         headers: {
@@ -53,10 +56,13 @@ const ProductPage = () => {
         }
       });
       
+      console.log('🔍 [TRACK] Réponse reçue:', response.status, response.statusText);
+      
       if (response.ok) {
         console.log('✅ [TRACK] Consultation enregistrée avec succès');
       } else {
-        console.error('❌ [TRACK] Erreur lors de l\'enregistrement:', response.status);
+        const errorText = await response.text();
+        console.error('❌ [TRACK] Erreur lors de l\'enregistrement:', response.status, errorText);
       }
     } catch (error) {
       console.error('❌ [TRACK] Erreur lors du suivi de la consultation:', error);

@@ -345,18 +345,23 @@ router.post('/:id/view', async (req: Request, res: Response) => {
 
     // Vérifier que le produit existe
     const productCheck = await db.query('SELECT id FROM products WHERE id = $1', [productId]) as any;
+    console.log('🔍 [VIEW] Vérification produit - Résultat:', productCheck.rows.length);
+    
     if (productCheck.rows.length === 0) {
       console.log('❌ [VIEW] Produit non trouvé:', productId);
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
 
     // Enregistrer ou mettre à jour la consultation
-    await db.query(`
+    console.log('🔍 [VIEW] Insertion dans product_views...');
+    const insertResult = await db.query(`
       INSERT INTO product_views (user_id, product_id, viewed_at) 
       VALUES ($1, $2, CURRENT_TIMESTAMP)
       ON CONFLICT (user_id, product_id) 
       DO UPDATE SET viewed_at = CURRENT_TIMESTAMP
     `, [userId, productId]);
+    
+    console.log('🔍 [VIEW] Résultat insertion:', insertResult);
 
     console.log('✅ [VIEW] Consultation enregistrée pour user:', userId, 'product:', productId);
     return res.json({ message: 'Consultation enregistrée' });
