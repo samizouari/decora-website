@@ -71,13 +71,18 @@ const ProductPage = () => {
 
   const fetchProduct = async (productId: number) => {
     try {
+      console.log('🔍 [FETCH] Chargement du produit:', productId);
+      console.log('🔍 [FETCH] État d\'authentification:', isAuthenticated);
+      console.log('🔍 [FETCH] Token disponible:', token ? 'Oui' : 'Non');
+      
       const response = await fetch(`${API_ENDPOINTS.PRODUCTS}/${productId}`);
       if (response.ok) {
         const data = await response.json();
         setProduct(data);
         
         // Enregistrer la consultation du produit
-        trackProductView(productId);
+        console.log('🔍 [FETCH] Appel de trackProductView...');
+        await trackProductView(productId);
       } else {
         setError('Produit non trouvé');
       }
