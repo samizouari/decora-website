@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { API_ENDPOINTS } from '../config/api';
 
 interface User {
   id: number;
@@ -86,7 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Envoyer chaque consultation au serveur
       for (const view of viewedProducts) {
         try {
-          const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/products/${view.productId}/view`, {
+          const response = await fetch(`${API_ENDPOINTS.PRODUCTS}/${view.productId}/view`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${authToken}`,
