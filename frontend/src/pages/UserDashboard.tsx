@@ -43,6 +43,48 @@ const UserDashboard = () => {
     fetchUserData()
   }, [])
 
+  const testLocalSync = async () => {
+    if (!token) return;
+    
+    console.log('🔍 [TEST] Test de synchronisation manuelle...');
+    
+    // Ajouter une consultation de test dans le localStorage
+    const testView = {
+      productId: 1,
+      viewedAt: new Date().toISOString()
+    };
+    
+    const viewedProducts = JSON.parse(localStorage.getItem('viewedProducts') || '[]');
+    viewedProducts.push(testView);
+    localStorage.setItem('viewedProducts', JSON.stringify(viewedProducts));
+    
+    console.log('🔍 [TEST] Consultation de test ajoutée:', testView);
+    
+    // Synchroniser
+    try {
+      const response = await fetch(`${API_ENDPOINTS.PRODUCTS}/${testView.productId}/view`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('🔍 [TEST] Réponse sync:', response.status, response.statusText);
+      
+      if (response.ok) {
+        console.log('✅ [TEST] Synchronisation réussie');
+        localStorage.removeItem('viewedProducts');
+        fetchUserData(); // Recharger les données
+      } else {
+        const errorText = await response.text();
+        console.error('❌ [TEST] Erreur sync:', errorText);
+      }
+    } catch (error) {
+      console.error('❌ [TEST] Erreur:', error);
+    }
+  };
+
   const fetchUserData = async () => {
     try {
       setLoading(true)
@@ -168,6 +210,13 @@ const UserDashboard = () => {
               <p className="text-gray-600">Bienvenue dans votre espace personnel Decora</p>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={testLocalSync}
+                className="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                disabled={!token}
+              >
+                Test Sync
+              </button>
               <div className="text-right">
                 <p className="text-sm text-gray-500">Membre depuis</p>
                 <p className="font-medium">{formatDate(user?.created_at || '')}</p>

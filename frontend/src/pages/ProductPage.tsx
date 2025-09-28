@@ -36,6 +36,14 @@ const ProductPage = () => {
     }
   }, [id]);
 
+  // Effet pour enregistrer la consultation quand l'utilisateur se connecte
+  useEffect(() => {
+    if (isAuthenticated && token && product && id) {
+      console.log('🔍 [AUTH_CHANGE] Utilisateur connecté, enregistrement de la consultation');
+      trackProductView(parseInt(id));
+    }
+  }, [isAuthenticated, token, product, id]);
+
   // Fonction pour enregistrer la consultation du produit
   const trackProductView = async (productId: number) => {
     try {
